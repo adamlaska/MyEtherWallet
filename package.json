@@ -173,7 +173,7 @@
     "vue-matomo": "4.1.0",
     "vue-template-compiler": "2.6.14",
     "vuetify": "2.5.9",
-    "web3": "1.5.0",
+    "web3": "4.0.1",
     "web3-core-helpers": "1.5.0",
     "web3-core-method": "1.5.0",
     "web3-core-requestmanager": "1.5.0",
