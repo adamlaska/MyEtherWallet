@@ -6,6 +6,7 @@
     ==========================================================================
     -->
     <the-layout-header
+      class="pt-16"
       :title="$t('careers.header')"
       :subtitle-line-one="$t('careers.subtitle')"
     />
@@ -93,13 +94,14 @@
 </template>
 
 <script>
-import TheLayoutHeader from '../components-default/TheLayoutHeader';
 import axios from 'axios';
-import { Toast, ERROR } from '@/modules/toast/handler/handlerToast';
 
+import { Toast, ERROR } from '@/modules/toast/handler/handlerToast';
 export default {
   name: 'TheCareersLayout',
-  components: { TheLayoutHeader },
+  components: {
+    TheLayoutHeader: () => import('../components-default/TheLayoutHeader')
+  },
   data() {
     return {
       loadingCareers: true,

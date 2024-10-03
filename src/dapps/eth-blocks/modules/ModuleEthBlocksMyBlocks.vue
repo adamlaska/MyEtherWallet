@@ -35,7 +35,7 @@
         <v-col
           cols="12"
           md="3"
-          :class="['pt-3 pt-md-0 pb-0 ', { 'pt-2': hasBlocks }]"
+          :class="['pt-3 pt-md-0 pb-0', { 'pt-2': hasBlocks }]"
         >
           <div class="mew-heading-3 textDark--text">
             My Blocks <span>({{ handlerMyBlocks.totalBlocks }})</span>
@@ -77,7 +77,6 @@
             title="You do not have any ETH Blocks"
             description="If you recently minted or purchased an ETH Block, please wait until the transaction has been minted and come back. If you haven’t minted one, what are you waiting for? Mint a block!"
             theme="info"
-            has-white-background
             hide-close-icon
           />
         </v-col>
@@ -128,19 +127,22 @@
 </template>
 
 <script>
-import BlocksLoading from '../components/BlocksLoading.vue';
-import BlocksSort from '../components/BlocksSort.vue';
-import ModuleEthBlockInfo from './ModuleEthBlockInfo.vue';
-import HandlerMyBlocks from '../handlers/handlerMyBlocks';
+import { mapState, mapGetters } from 'vuex';
+
 import { ETH_BLOCKS_ROUTE } from '../configsRoutes';
 import { Toast, ERROR } from '@/modules/toast/handler/handlerToast';
-import { mapState, mapGetters } from 'vuex';
 import { formatIntegerToString } from '@/core/helpers/numberFormatHelper';
 import { validBlockNumber } from '../handlers/helpers/common';
 
+import HandlerMyBlocks from '../handlers/handlerMyBlocks';
+
 export default {
   name: 'ModuleEthBlocksMyBlocks',
-  components: { BlocksLoading, BlocksSort, ModuleEthBlockInfo },
+  components: {
+    BlocksLoading: () => import('../components/BlocksLoading.vue'),
+    BlocksSort: () => import('../components/BlocksSort.vue'),
+    ModuleEthBlockInfo: () => import('./ModuleEthBlockInfo.vue')
+  },
   props: {
     blockRef: {
       type: String,

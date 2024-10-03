@@ -7,14 +7,17 @@
 </template>
 
 <script>
-import ModuleToast from '@/modules/toast/ModuleToast.vue';
-import ModuleGlobalModals from '@/modules/global-modals/ModuleGlobalModals';
 import { mapActions } from 'vuex';
 
 export default {
   name: 'App',
-  components: { ModuleToast, ModuleGlobalModals },
+  components: {
+    ModuleToast: () => import('@/modules/toast/ModuleToast.vue'),
+    ModuleGlobalModals: () =>
+      import('@/modules/global-modals/ModuleGlobalModals')
+  },
   mounted() {
+    this.$vuetify.theme.dark = false;
     this.setOnlineStatus(false);
     this.setOfflineApp(true);
   },
@@ -27,5 +30,5 @@ export default {
 
 <style lang="scss">
 @import '@/assets/styles/GlobalStyles.scss';
-@import '@myetherwallet/mew-components/src/assets/styles/global.scss';
+@import '@/assets/styles/GlobalComponents.scss';
 </style>

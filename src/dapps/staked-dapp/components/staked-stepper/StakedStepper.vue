@@ -28,24 +28,11 @@
       </template>
       <!--
     ===================================================
-    Step 3: Upload Keystore file
+    Step 3: Review & Stake
     ===================================================
     -->
       <template v-if="onStep === 3" #stepperContent3>
-        <step-three-upload
-          :skipped="skipped"
-          :address="address"
-          @onContinue="nextStep"
-          @back="back"
-        />
-      </template>
-      <!--
-    ===================================================
-    Step 4: Review & Stake
-    ===================================================
-    -->
-      <template v-if="onStep === 4" #stepperContent4>
-        <step-four-review
+        <step-three-review
           :amount="amount"
           :eth2-address="address"
           :start-provision="startProvision"
@@ -59,18 +46,13 @@
 </template>
 
 <script>
-import StepOneAmount from './staked-steps/StepOneAmount';
-import StepTwoGenerate from './staked-steps/StepTwoGenerate';
-import StepFourReview from './staked-steps/StepFourReview';
-import StepThreeUpload from './staked-steps/StepThreeUpload';
 import { ROUTES_WALLET } from '@/core/configs/configRoutes';
 
 export default {
   components: {
-    StepOneAmount,
-    StepTwoGenerate,
-    StepThreeUpload,
-    StepFourReview
+    StepOneAmount: () => import('./staked-steps/StepOneAmount'),
+    StepTwoGenerate: () => import('./staked-steps/StepTwoGenerate'),
+    StepThreeReview: () => import('./staked-steps/StepThreeReview')
   },
   props: {
     currentApr: {
@@ -97,15 +79,11 @@ export default {
         },
         {
           step: 2,
-          name: 'Generate Eth2 address'
+          name: 'Provide Address'
         },
         {
           step: 3,
-          name: 'Upload keystore file'
-        },
-        {
-          step: 4,
-          name: 'Review & stake'
+          name: 'Review & Stake'
         }
       ],
       skipped: false,

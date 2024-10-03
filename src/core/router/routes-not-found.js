@@ -1,17 +1,17 @@
-import TheDefaultView from '@/views/TheDefaultView';
-import ThePageNotFoundLayout from '@/views/layouts-default/ThePageNotFoundLayout';
 import { ROUTES_HOME } from '../configs/configRoutes';
 
 export default {
   path: ROUTES_HOME.PAGE_NOT_FOUND.PATH,
-  component: TheDefaultView,
+  component: () => import('@/views/TheDefaultView'),
   children: [
     {
       path: ROUTES_HOME.PAGE_NOT_FOUND.PATH,
       name: ROUTES_HOME.PAGE_NOT_FOUND.NAME,
-      component: ThePageNotFoundLayout,
+      component: () => import('@/views/layouts-default/ThePageNotFoundLayout'),
       meta: {
-        noAuth: true
+        noAuth: true,
+        title: '404 Page Not Found',
+        description: '404 page for MyEtherWallet.'
       }
     }
   ]

@@ -1,5 +1,20 @@
 import nodeList from '@/utils/networks';
-import { ETH, BSC, MATIC } from '@/utils/networks/types';
+import {
+  ETH,
+  BSC,
+  POL,
+  ROOTSTOCK,
+  ETC,
+  XDC,
+  MOONBEAM,
+  MOONRIVER,
+  AURORA,
+  ARB,
+  FTM,
+  GNO,
+  OP,
+  COTI
+} from '@/utils/networks/types';
 import {
   getGasBasedOnType,
   getPriorityFeeBasedOnType,
@@ -32,20 +47,22 @@ const network = function (state) {
   }
   return network;
 };
-const gasPriceByType = (state, getters) => type => {
-  if (!getters.isEIP1559SupportedNetwork) {
-    return getGasBasedOnType(state.baseGasPrice, type);
-  }
-  const priorityFee = getPriorityFeeBasedOnType(
-    toBN(state.eip1559.maxPriorityFeePerGas),
-    type
-  );
-  const baseFee = getBaseFeeBasedOnType(
-    toBN(state.eip1559.baseFeePerGas),
-    type
-  );
-  return baseFee.add(priorityFee).toString();
-};
+const gasPriceByType =
+  (state, getters) =>
+  (type = 'economy') => {
+    if (!getters.isEIP1559SupportedNetwork) {
+      return getGasBasedOnType(state.baseGasPrice, type);
+    }
+    const priorityFee = getPriorityFeeBasedOnType(
+      toBN(state.eip1559.maxPriorityFeePerGas),
+      type
+    );
+    const baseFee = getBaseFeeBasedOnType(
+      toBN(state.eip1559.baseFeePerGas),
+      type
+    );
+    return baseFee.add(priorityFee).toString();
+  };
 const gasPrice = function (state, getters) {
   if (!getters.isEIP1559SupportedNetwork) {
     return getGasBasedOnType(state.baseGasPrice, state.gasPriceType);
@@ -68,10 +85,25 @@ const localContracts = function (state, getters) {
 
 const hasSwap = function (state, getters, rootState) {
   const name = getters.network.type.name;
-  const device = rootState.wallet.instance.identifier;
+  const device = rootState.wallet.instance?.identifier;
 
   if (device === WALLET_TYPES.COOL_WALLET_S) return false;
-  return name === ETH.name || name === BSC.name || name === MATIC.name;
+  return (
+    name === ETH.name ||
+    name === BSC.name ||
+    name === POL.name ||
+    name === ROOTSTOCK.name ||
+    name === ETC.name ||
+    name === XDC.name ||
+    name === MOONBEAM.name ||
+    name === MOONRIVER.name ||
+    name === AURORA.name ||
+    name === ARB.name ||
+    name === FTM.name ||
+    name === GNO.name ||
+    name === OP.name ||
+    name === COTI.name
+  );
 };
 
 const swapLink = function (state, getters, rootState) {

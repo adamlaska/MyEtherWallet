@@ -7,14 +7,15 @@ const GET_TRADE = '/swap/trade';
 const REQUEST_CACHER = 'https://requestcache.mewapi.io/?url=';
 import { isAddress } from 'web3-utils';
 import Configs from '../configs/providersConfigs';
-import { ETH } from '@/utils/networks/types';
+import { ETH, POL } from '@/utils/networks/types';
 import { Toast, ERROR } from '@/modules/toast/handler/handlerToast';
 class MEWPClass {
   constructor(providerName, web3, supportednetworks, chain) {
     this.web3 = web3;
     this.provider = providerName;
     this.supportednetworks = supportednetworks;
-    this.chain = chain;
+
+    this.chain = chain === POL.name ? POL.currencyName : chain;
   }
   isSupportedNetwork(chain) {
     return this.supportednetworks.includes(chain);
@@ -24,6 +25,10 @@ class MEWPClass {
       .get(`${REQUEST_CACHER}${HOST_URL}${GET_LIST}?chain=${this.chain}`)
       .then(response => {
         const data = response.data;
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
         return data.map(d => {
           const token = {
             contract: d.contract_address.toLowerCase(),
@@ -53,7 +58,7 @@ class MEWPClass {
         .dividedBy(new BigNumber(10).pow(fromT.decimals))
         .toFixed(),
       maxFrom: new BigNumber(1)
-        .multipliedBy(new BigNumber(10).pow(fromT.decimals))
+        .multipliedBy(new BigNumber(10).pow(18))
         .toFixed()
     });
   }
@@ -88,8 +93,8 @@ class MEWPClass {
               exchange: q.exchange,
               provider: this.provider,
               amount: new BigNumber(q.amount).toFixed(),
-              minFrom: minmax.minFrom,
-              maxFrom: minmax.maxFrom
+              minFrom: minmax?.minFrom ? minmax.minFrom : 0,
+              maxFrom: minmax?.maxFrom ? minmax.maxFrom : 0
             };
           });
         })
@@ -128,6 +133,9 @@ class MEWPClass {
         };
       })
       .catch(err => {
+        if (err.message === 'Request failed with status code 404') {
+          return err;
+        }
         Toast(err, {}, ERROR);
       });
   }
@@ -152,7 +160,7 @@ class MEWPClass {
               hashes: [hash]
             });
           })
-          .catch(reject);
+          .catch(e => reject(e));
       });
     }
     const txs = [];
@@ -171,28 +179,48 @@ class MEWPClass {
       this.web3.mew
         .sendBatchTransactions(txs)
         .then(promises => {
+          // reject promise for web3 wallets
+          if (promises instanceof Error) {
+            reject(promises);
+          }
           promises.forEach(p => {
-            p.on('transactionHash', hash => {
-              hashes.push(hash);
+            /**
+             * changes to how enkrypt handles transaction necessitates
+             * receiving an array of object resolve
+             */
+            if (typeof p === 'object' && p instanceof Promise) {
+              p.on('transactionHash', hash => {
+                hashes.push(hash);
+                counter++;
+                if (counter === promises.length)
+                  resolve({
+                    provider: this.provider,
+                    hashes,
+                    statusObj: { hashes }
+                  });
+              });
+
+              p.on('error', err => {
+                hashes.push(err);
+                counter++;
+                if (counter === promises.length)
+                  reject({
+                    provider: this.provider,
+                    hashes,
+                    statusObj: { hashes }
+                  });
+              });
+            } else {
+              hashes.push(p.transactionHash);
               counter++;
-              if (counter === promises.length)
+              if (counter === promises.length) {
                 resolve({
                   provider: this.provider,
                   hashes,
                   statusObj: { hashes }
                 });
-            });
-
-            p.on('error', err => {
-              hashes.push(err);
-              counter++;
-              if (counter === promises.length)
-                reject({
-                  provider: this.provider,
-                  hashes,
-                  statusObj: { hashes }
-                });
-            });
+              }
+            }
           });
         })
         .catch(reject);

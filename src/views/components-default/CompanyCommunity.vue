@@ -1,8 +1,8 @@
 <template>
-  <div>
+  <div class="company-community">
     <v-container>
       <v-row>
-        <v-col cols="6">
+        <v-col cols="12" sm="6">
           <v-sheet max-width="400px">
             <v-img
               src="@/assets/images/icons/icon-message2-mew.svg"
@@ -21,7 +21,7 @@
             />
           </v-sheet>
         </v-col>
-        <v-col cols="6">
+        <v-col cols="12" sm="6">
           <v-sheet max-width="400px">
             <v-img
               src="@/assets/images/icons/icon-community-mew.svg"
@@ -53,13 +53,11 @@
 </template>
 
 <script>
-import AppBlockTitle from '@/core/components/AppBlockTitle';
 import Telegram from '@/assets/images/icons/icon-telegram-dark.svg';
 import Slack from '@/assets/images/icons/icon-slack-dark.svg';
 import Reddit from '@/assets/images/icons/icon-reddit-dark.svg';
 import Github from '@/assets/images/icons/icon-github-dark.svg';
 export default {
-  components: { AppBlockTitle },
   data: vm => ({
     icons: [
       {

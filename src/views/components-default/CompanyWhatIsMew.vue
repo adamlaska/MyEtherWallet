@@ -1,13 +1,13 @@
 <template>
-  <div>
+  <div class="company-what-is-mew">
     <v-container>
       <v-row align="center">
-        <v-col cols="5">
+        <v-col cols="12" md="5">
           <app-block-title no-page-title :data="titleData" class="pr-8" />
         </v-col>
-        <v-col cols="7">
+        <v-col cols="12" md="7">
           <v-img
-            src="@/assets/images/backgrounds/bg-spaceman.png"
+            src="@/assets/images/backgrounds/bg-spaceman.jpg"
             max-width="100%"
           />
         </v-col>
@@ -17,10 +17,7 @@
 </template>
 
 <script>
-import AppBlockTitle from '@/core/components/AppBlockTitle';
-
 export default {
-  components: { AppBlockTitle },
   data: vm => ({
     titleData: {
       textProps: '',

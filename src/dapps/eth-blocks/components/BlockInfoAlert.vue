@@ -128,12 +128,7 @@
         </v-col>
       </v-row>
     </div>
-    <mew-alert
-      :theme="alertTheme"
-      has-white-background
-      hide-alert-icon
-      hide-close-icon
-    >
+    <mew-alert :theme="alertTheme" hide-alert-icon hide-close-icon>
       <v-row class="align-center justify-start" no-gutters>
         <!--
         ===================================================
@@ -267,7 +262,7 @@
         </v-col>
         <!--
         ===================================================
-          Block is available OR is Owned: not enough Eth
+          Block is available OR is Owned: not enough ETH
         ===================================================
         -->
         <v-col
@@ -284,7 +279,11 @@
               <a
                 v-if="!isTestNetwork && network.type.canBuy"
                 class="mew-label font-weight-medium buy-more-link"
-                @click="openMoonpay"
+                @click="
+                  () => {
+                    openBuySell('ETHBlocksAlert');
+                  }
+                "
               >
                 Buy more {{ network.type.name }}.
 
@@ -318,17 +317,18 @@
 </template>
 
 <script>
+import { fromWei } from 'web3-utils';
+import { mapGetters, mapState, mapActions } from 'vuex';
+import BigNumber from 'bignumber.js';
+
 import {
   BLOCK_ALERT,
   blockAlertValidator
 } from '../handlers/helpers/blockAlertType';
-import { fromWei } from 'web3-utils';
-import { mapGetters, mapState, mapActions } from 'vuex';
 import {
   formatIntegerToString,
   formatFloatingPointValue
 } from '@/core/helpers/numberFormatHelper';
-import BigNumber from 'bignumber.js';
 import handlerAnalytics from '@/modules/analytics-opt-in/handlers/handlerAnalytics.mixin';
 const RARIBLE_CONTRACT = 'token/0x01234567bac6ff94d7e4f0ee23119cf848f93245:';
 const RARIBLE = 'https://rarible.com/';
@@ -548,7 +548,7 @@ export default {
      */
     notEnoughMessage() {
       const text = this.isOwned ? 'transfer' : 'mint';
-      return `Not enough ${this.network.type.name} to ${text}. `;
+      return `Not enough ${this.network.type.name.toUpperCase()} to ${text}. `;
     },
     estimatedFeesTooltip() {
       const formattedTotal = formatFloatingPointValue(
@@ -616,6 +616,7 @@ export default {
   border: 1px solid var(--v-greenMedium-base);
   border-radius: 10px;
   overflow: hidden;
+  height: 200px;
 }
 .alert-container-top {
   background-color: #ebfaf8;

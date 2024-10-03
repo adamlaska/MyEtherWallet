@@ -1,46 +1,49 @@
-import TheWalletView from '@/views/TheWalletView';
-import Dashboard from '@/views/layouts-wallet/TheDashboardLayout';
-import Send from '@/views/layouts-wallet/TheSendTransactionLayout';
-import SendOffline from '@/views/layouts-wallet/TheSendTransactionOfflineLayout';
-import NftManager from '@/views/layouts-wallet/TheNFTManagerLayout';
-import Swap from '@/views/layouts-wallet/TheSwapLayout';
-import InteractContract from '@/views/layouts-wallet/TheInteractContractLayout';
-import DeployContract from '@/views/layouts-wallet/TheDeployContractLayout';
-import SignMessage from '@/views/layouts-wallet/TheSignMessageLayout';
-import VerifyMessage from '@/views/layouts-wallet/TheVerifyMessageLayout';
-import Dapps from '@/views/layouts-wallet/TheDappCenterLayout.vue';
 import DappRoutes from '@/dapps/routes-dapps.js';
-import Settings from '@/modules/settings/ModuleSettings';
-import NftManagerSend from '@/modules/nft-manager/components/NftManagerSend';
-// import Notifications from '@/modules/notifications/ModuleNotifications';
-import Network from '@/modules/network/ModuleNetwork';
 import { swapProps, swapRouterGuard } from './helpers';
 import { ROUTES_WALLET } from '../configs/configRoutes';
+import StakeRoute from '@/core/router/routes-staking.js';
 export default {
   path: '/wallet',
-  component: TheWalletView,
+  component: () => import('@/views/TheWalletView'),
   props: true,
   children: [
     {
       path: ROUTES_WALLET.WALLETS.PATH,
       name: ROUTES_WALLET.WALLETS.NAME,
-      component: Dashboard,
+      component: () => import('@/views/layouts-wallet/TheDashboardLayout'),
       meta: {
-        noAuth: false
+        noAuth: false,
+        title: 'Crypto Portfolio Manager | MyEtherWallet',
+        description:
+          'Manage your crypto portfolio with MyEtherWallet. View all your crypto assets in one easy to use portfolio manager.'
       }
     },
     {
       path: ROUTES_WALLET.DASHBOARD.PATH,
       name: ROUTES_WALLET.DASHBOARD.NAME,
-      component: Dashboard,
+      component: () => import('@/views/layouts-wallet/TheDashboardLayout'),
       meta: {
-        noAuth: false
+        noAuth: false,
+        title: 'Crypto Portfolio Manager | MyEtherWallet',
+        description:
+          'Manage your crypto portfolio with MyEtherWallet. View all your crypto assets in one easy to use portfolio manager.'
       }
     },
     {
       path: ROUTES_WALLET.SETTINGS.PATH,
       name: ROUTES_WALLET.SETTINGS.NAME,
-      component: Settings,
+      component: () => import('@/modules/settings/ModuleSettings'),
+      meta: {
+        noAuth: false,
+        title: 'Modify Your Settings | MyEtherWallet',
+        description:
+          'Manage your settings on MyEtherWallet. We heard you like dark mode crypto apps.'
+      }
+    },
+    {
+      path: ROUTES_WALLET.PRINT.PATH,
+      name: ROUTES_WALLET.PRINT.NAME,
+      component: () => import('@/modules/balance/ModulePaperWallet'),
       meta: {
         noAuth: false
       }
@@ -48,103 +51,119 @@ export default {
     {
       path: ROUTES_WALLET.SEND_TX.PATH,
       name: ROUTES_WALLET.SEND_TX.NAME,
-      component: Send,
+      component: () =>
+        import('@/views/layouts-wallet/TheSendTransactionLayout'),
       props: true,
       meta: {
-        noAuth: false
-      }
-    },
-    {
-      path: ROUTES_WALLET.SEND_TX_OFFLINE.PATH,
-      name: ROUTES_WALLET.SEND_TX_OFFLINE.NAME,
-      component: SendOffline,
-      props: true,
-      meta: {
-        noAuth: false
+        noAuth: false,
+        title: 'Send And Receive Crypto | MyEtherWallet',
+        description:
+          'Send and receive crypto to your self custody wallet using MyEtherWallet. Open sourced, safe and secure EVM wallet.'
       }
     },
     {
       path: ROUTES_WALLET.NFT_MANAGER.PATH,
       name: ROUTES_WALLET.NFT_MANAGER.NAME,
-      component: NftManager,
+      component: () => import('@/views/layouts-wallet/TheNFTManagerLayout'),
       children: [
         {
           path: ROUTES_WALLET.NFT_MANAGER_SEND.PATH,
           name: ROUTES_WALLET.NFT_MANAGER_SEND.NAME,
-          component: NftManagerSend,
+          component: () =>
+            import('@/modules/nft-manager/components/NftManagerSend'),
           meta: {
-            noAuth: false
+            noAuth: false,
+            title: 'Send Your NFTs on MyEtherWallet',
+            description:
+              "Send your NFTs easily on MyEtherWallet. From Bored Apes to Doodles and everything in between, we've got you."
           }
         }
       ],
       meta: {
-        noAuth: false
-      }
-    },
-    // {
-    //   path: ROUTES_WALLET.NOTIFICATIONS.PATH,
-    //   name: ROUTES_WALLET.NOTIFICATIONS.NAME,
-    //   component: Notifications,
-    //   meta: {
-    //     noAuth: false
-    //   }
-    // },
-    {
-      path: ROUTES_WALLET.NETWORK.PATH,
-      name: ROUTES_WALLET.NETWORK.NAME,
-      component: Network,
-      meta: {
-        noAuth: false
+        noAuth: false,
+        title: 'Manage Your NFTs | View Your NFTs',
+        description:
+          'View and send your NFTs on MyEtherWallet. See all your NFTs on multiple chains.'
       }
     },
     {
       path: ROUTES_WALLET.SWAP.PATH,
       name: ROUTES_WALLET.SWAP.NAME,
-      component: Swap,
+      component: () => import('@/views/layouts-wallet/TheSwapLayout'),
       props: swapProps,
       beforeEnter: swapRouterGuard,
       meta: {
-        noAuth: false
+        noAuth: false,
+        title: 'Swap and Trade Crypto | Easy Crypto Trading',
+        description:
+          'Swap crypto across chains. Trade crypto securely without using a centralized exchange.'
+      }
+    },
+    {
+      path: ROUTES_WALLET.STAKE.PATH,
+      children: StakeRoute,
+      component: () => import('@/views/layouts-wallet/TheDappCenterLayout.vue'),
+      meta: {
+        noAuth: false,
+        title: 'Stake on MyEtherWallet | Staking',
+        description:
+          'Earn rewards on your Ethereum with Staking. Help secure the Ethereum network and earn crypto.'
       }
     },
     {
       path: ROUTES_WALLET.DAPPS.PATH,
-      component: Dapps,
+      component: () => import('@/views/layouts-wallet/TheDappCenterLayout.vue'),
       children: DappRoutes,
       meta: {
-        noAuth: false
+        noAuth: false,
+        title: 'Access DApps on MyEtherWallet | Web3 DApps',
+        description:
+          'Engage with the featured web3 DApps on MyEtherWallet. Find the next cool crypto project.'
       }
     },
     {
       path: ROUTES_WALLET.DEPLOY_CONTRACT.PATH,
       name: ROUTES_WALLET.DEPLOY_CONTRACT.NAME,
-      component: DeployContract,
+      component: () => import('@/views/layouts-wallet/TheDeployContractLayout'),
       meta: {
-        noAuth: false
+        noAuth: false,
+        title: 'Deploy Ethereum Contract On MyEtherWallet | MEW',
+        description:
+          'Deploy a smart contract to the Ethereum mainnet using MyEtherWallet. Trusted by Ethereum developers since 2015. '
       }
     },
     {
       path: ROUTES_WALLET.INTERACT_WITH_CONTRACT.PATH,
       name: ROUTES_WALLET.INTERACT_WITH_CONTRACT.NAME,
-      component: InteractContract,
+      component: () =>
+        import('@/views/layouts-wallet/TheInteractContractLayout'),
       meta: {
-        noAuth: false
+        noAuth: false,
+        title: 'Interact With Ethereum Contracts On MyEtherWallet | MEW',
+        description:
+          'MyEtherWallet empowers users to interact with Ethereum contracts directly. Collect airdrops, mint tokens and more.'
       }
     },
     {
       path: ROUTES_WALLET.SIGN_MESSAGE.PATH,
       name: ROUTES_WALLET.SIGN_MESSAGE.NAME,
-      component: SignMessage,
+      component: () => import('@/views/layouts-wallet/TheSignMessageLayout'),
       meta: {
-        noAuth: false
+        noAuth: false,
+        title: 'Use Your Wallet To Sign a Message | MyEtherWallet',
+        description:
+          'Sign a message with your crypto wallet. Use MyEtherWallet to easily verify ownership of your wallet.'
       }
     },
     {
       path: ROUTES_WALLET.VERIFY_MESSAGE.PATH,
       name: ROUTES_WALLET.VERIFY_MESSAGE.NAME,
-      component: VerifyMessage,
+      component: () => import('@/views/layouts-wallet/TheVerifyMessageLayout'),
       meta: {
-        noAuth: false
+        noAuth: false,
+        title: 'Verify A Signed Message With a Crypto Wallet | MyEtherWallet',
+        description:
+          'Confirm a signed message with your crypto wallet. Access this feature using MyEtherWallet.'
       }
     }
   ]

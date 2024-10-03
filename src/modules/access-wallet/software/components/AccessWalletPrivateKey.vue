@@ -1,5 +1,5 @@
 <template>
-  <div class="full-width">
+  <div class="full-width pt-6">
     <h3 class="mb-6">Enter your private key</h3>
     <!--
     =====================================================================================
@@ -11,7 +11,7 @@
       class="PrivateKeyInput"
       label="Private Key"
       placeholder="Enter your Private Key"
-      :rules="privKeyRulles"
+      :rules="privKeyRules"
       type="password"
     />
     <!--
@@ -20,9 +20,10 @@
     =====================================================================================
     -->
     <div class="text-center">
+      <mew-checkbox v-model="invis" class="checkbox" />
       <mew-checkbox
         v-model="acceptTerms"
-        label="To access my wallet, I accept "
+        :label="label"
         :link="link"
         class="justify-center PrivateKeyTerms"
       />
@@ -43,15 +44,21 @@
 </template>
 
 <script>
-import { isPrivateKey } from '../handlers/helpers';
 import { isValidPrivate } from 'ethereumjs-util';
+import { isString } from 'lodash';
+import { mapState } from 'vuex';
+
+import { isPrivateKey } from '../handlers/helpers';
 import {
   getBufferFromHex,
   sanitizeHex
 } from '../../../access-wallet/common/helpers';
-import { isString } from 'lodash';
+import handlerAnalyticsMixin from '@/modules/analytics-opt-in/handlers/handlerAnalytics.mixin';
+import { ACCESS_WALLET } from '@/modules/analytics-opt-in/handlers/configs/events';
+
 export default {
   name: 'AccessWalletPrivateKey',
+  mixins: [handlerAnalyticsMixin],
   props: {
     handlerAccessWallet: {
       type: Object,
@@ -64,6 +71,8 @@ export default {
     return {
       privateKey: '',
       acceptTerms: false,
+      invis: false,
+      label: 'To access my wallet, I accept ',
       link: {
         title: 'Terms',
         url: 'https://www.myetherwallet.com/terms-of-service'
@@ -71,6 +80,7 @@ export default {
     };
   },
   computed: {
+    ...mapState('wallet', ['isOfflineApp']),
     /**
      * Property that controls Access Wallet button
      * Button is enabled when terms were accepted and
@@ -100,13 +110,38 @@ export default {
         : this.privateKey;
     },
     /**
-     * @returns rulles fot the private key input
+     * @returns rules fot the private key input
      */
-    privKeyRulles() {
+    privKeyRules() {
       return [
         value => !!value || 'Required',
         value => isPrivateKey(value) || 'This is not a real private Key'
       ];
+    }
+  },
+  watch: {
+    privateKey(val) {
+      if (val !== '' && !this.privKey) {
+        this.trackAccessWalletAmplitude(ACCESS_WALLET.SOFTWARE_FAILED, {
+          error: 'This is not a real private Key'
+        });
+      }
+    },
+    acceptTerms(val) {
+      if (val) {
+        this.trackAccessWalletAmplitude(ACCESS_WALLET.PRIV_KEY_TERMS);
+      }
+    },
+    invis(val) {
+      if (val) {
+        this.trackAccessWalletAmplitude(ACCESS_WALLET.PRIV_INVISIBLE_BOX);
+      }
+    }
+  },
+  mounted() {
+    if (this.isOfflineApp) {
+      this.link = {};
+      this.label = 'To access my wallet, I accept Terms';
     }
   },
   methods: {
@@ -122,3 +157,9 @@ export default {
   }
 };
 </script>
+
+<style lang="scss" scoped>
+.checkbox {
+  opacity: 0 !important;
+}
+</style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="mew-component--convert-units">
+  <div class="mew-component--convert-units pt-16">
     <the-layout-header
       title="Convert Units"
       subtitle-line-one="Our helpful conversion tool and ether unit reference allow you to calculate the total cost of your transactions."
@@ -95,13 +95,11 @@
       </div>
     </v-container>
 
-    <app-get-started />
+    <get-started />
   </div>
 </template>
 
 <script>
-import TheLayoutHeader from '../components-default/TheLayoutHeader';
-import AppGetStarted from '@/core/components/AppGetStarted';
 import { mapState } from 'vuex';
 import { BigNumber } from 'bignumber.js';
 import utils from 'web3-utils';
@@ -109,8 +107,8 @@ import utils from 'web3-utils';
 export default {
   name: 'TheConvertUnitsLayout',
   components: {
-    TheLayoutHeader,
-    AppGetStarted
+    TheLayoutHeader: () => import('../components-default/TheLayoutHeader'),
+    GetStarted: () => import('../components-default/GetStarted')
   },
   data() {
     return {

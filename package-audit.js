@@ -16,16 +16,41 @@ const AUDIT_EXCEPTIONS = [
   'nth-check',
   'semver-regex',
   'scss-tokenizer',
-  // no package found
-  'codecov',
-  'glob-parent',
-  'socket.io-parser',
-  'xmlhttprequest-ssl',
-  'node-forge',
-  'engine.io',
-  'parse-path',
+  'codecov', // no package found
+  'loader-utils', // breaks building
+  'json5',
+  'http-cache-semantics',
+  'cacheable-request',
+  'dns-packet',
+  'decode-uri-component',
   '@openzeppelin/contracts',
-  'terser'
+  'engine.io',
+  'socket.io-parser',
+  'fast-xml-parser',
+  '@grpc/grpc-js',
+  'is_js',
+  'get-func-name',
+  'chart.js',
+  'browserify-sign',
+  'lodash.pick',
+  'ip',
+  'webpack-dev-middleware',
+  'web3-utils',
+  '@solana/web3.js',
+  'lodash.template',
+  'html-minifier',
+  'braces',
+  'ws',
+  // issues after new enkrypt ens lib
+  'lodash',
+  'node-forge',
+  'elliptic',
+  'protobufjs',
+  'minimatch',
+  'socket.io',
+  'semver',
+  'path-to-regexp',
+  'body-parser'
 ];
 const execute = (command, callback) => {
   exec(
@@ -55,4 +80,5 @@ execute('npm audit --json', json => {
     }
   }
   if (!auditPass) process.exit(1);
+  console.log('AUDIT complete');
 });

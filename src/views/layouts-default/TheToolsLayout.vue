@@ -3,57 +3,44 @@
     class="mew-component--tools"
     :class="$vuetify.breakpoint.smAndDown ? 'mobile' : 'desktop'"
   >
-    <the-layout-header title="Tools" />
+    <the-layout-header title="Tools" class="pt-16" />
 
     <v-container class="px-3 my-12">
       <mew-tabs
         :is-vertical="$vuetify.breakpoint.smAndDown ? false : true"
+        :compact="$vuetify.breakpoint.smAndDown"
         :items="items"
         :active-tab="activeTab"
         show-arrows
         @onTab="tabChanged"
       >
         <template #tabItemContent1>
-          <module-message-verify />
+          <module-message-verify ref="verifyMessageModule" />
         </template>
         <template #tabItemContent2>
           <module-tools-convert />
         </template>
         <template #tabItemContent3>
-          <module-tools-generate-keystore />
-        </template>
-        <template #tabItemContent4>
-          <module-tools-offline-helper :ishomepage="true" />
-        </template>
-        <template #tabItemContent5>
-          <module-tools-watch-only />
+          <module-tools-offline-helper :is-home-page="true" />
         </template>
       </mew-tabs>
     </v-container>
-    <app-get-started />
+    <get-started />
   </div>
 </template>
 
 <script>
-import TheLayoutHeader from '../components-default/TheLayoutHeader';
-import AppGetStarted from '@/core/components/AppGetStarted';
-import ModuleToolsWatchOnly from '@/modules/tools/ModuleToolsWatchOnly';
-import ModuleToolsConvert from '@/modules/tools/ModuleToolsConvert';
-import ModuleToolsGenerateKeystore from '@/modules/tools/ModuleToolsGenerateKeystore/ModuleToolsGenerateKeystore';
-import ModuleToolsOfflineHelper from '@/modules/tools/ModuleToolsOfflineHelper';
-import ModuleMessageVerify from '@/modules/message/ModuleMessageVerify';
 import { ROUTES_HOME } from '@/core/configs/configRoutes';
 
 export default {
   name: 'TheToolsLayout',
   components: {
-    TheLayoutHeader,
-    AppGetStarted,
-    ModuleToolsWatchOnly,
-    ModuleToolsConvert,
-    ModuleToolsGenerateKeystore,
-    ModuleToolsOfflineHelper,
-    ModuleMessageVerify
+    TheLayoutHeader: () => import('../components-default/TheLayoutHeader'),
+    ModuleToolsConvert: () => import('@/modules/tools/ModuleToolsConvert'),
+    ModuleToolsOfflineHelper: () =>
+      import('@/modules/tools/ModuleToolsOfflineHelper'),
+    ModuleMessageVerify: () => import('@/modules/message/ModuleMessageVerify'),
+    GetStarted: () => import('../components-default/GetStarted')
   },
   data: () => ({
     currentTool: '',
@@ -68,19 +55,9 @@ export default {
         val: 'convert'
       },
       {
-        name: 'Generate Keystore file',
-        val: 'keystore'
-      },
-      {
         name: 'Send Offline Helper',
         val: 'offline'
       }
-      /*
-      {
-        name: 'Watch only address',
-        val: 'watch'
-      }
-      */
     ]
   }),
   watch: {
@@ -88,6 +65,7 @@ export default {
       this.setCurrentTool();
     },
     currentTool(val) {
+      this.$refs.verifyMessageModule?.clearAll();
       this.$router.push({ name: ROUTES_HOME.TOOLS.NAME, query: { tool: val } });
     }
   },
@@ -96,7 +74,7 @@ export default {
   },
   methods: {
     setCurrentTool() {
-      const tools = ['watch', 'convert', 'offline', 'verify', 'keystore'];
+      const tools = ['convert', 'offline', 'verify'];
 
       // Check if tool value from URL is valid
       if (tools.includes(this.$route.query.tool)) {
@@ -112,12 +90,8 @@ export default {
             this.activeTab = 1;
             this.currentTool = 'convert';
             break;
-          case 'keystore':
-            this.activeTab = 2;
-            this.currentTool = 'keystore';
-            break;
           case 'offline':
-            this.activeTab = 3;
+            this.activeTab = 2;
             this.currentTool = 'offline';
             break;
           default:
@@ -140,9 +114,6 @@ export default {
           this.currentTool = 'convert';
           break;
         case 2:
-          this.currentTool = 'keystore';
-          break;
-        case 3:
           this.currentTool = 'offline';
           break;
         default:

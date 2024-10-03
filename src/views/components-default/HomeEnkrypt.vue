@@ -11,7 +11,7 @@
           class="product-contexts position-relative"
           :style="
             isMobile
-              ? 'padding-top: 70px'
+              ? 'padding-top: 70px; padding-bottom: 50px'
               : 'padding-top: 100px; padding-bottom: 100px'
           "
         >
@@ -25,7 +25,7 @@
             Introducing MEW’s multichain wallet extension
           </div>
           <div class="text-subtitle mb-md-10" style="color: #60666d">
-            Easily access all you favorite apps across Ethereum and Polkadot
+            Easily access all your favorite apps across Ethereum and Polkadot
             chains, buy crypto, swap tokens, and manage your NFTs. Welcome to
             the multichain future.
           </div>
@@ -42,7 +42,8 @@
                 color-theme="#7E44F2"
                 style="border-radius: 100px !important"
                 btn-size="large"
-                @click.native="openEnkrypt"
+                btn-link="https://www.enkrypt.com"
+                @click.native="trackEnkrypt"
               >
                 <img
                   :src="browserLogo"
@@ -58,6 +59,7 @@
                 class="text-decoration-underline textSecondary--text ml-5"
                 href="https://www.enkrypt.com"
                 target="_blank"
+                @click="trackEnkryptLearnMore"
                 >Learn more</a
               >
             </div>
@@ -85,11 +87,13 @@
 
 <script>
 import enkryptMarketing from '@/core/mixins/enkryptMarketing.mixin.js';
+import handlerAnalytics from '@/modules/analytics-opt-in/handlers/handlerAnalytics.mixin';
+import { LANDING_PAGE } from '@/modules/analytics-opt-in/handlers/configs/events.js';
 export default {
   name: 'HomeEnkrypt',
-  components: {},
-  mixins: [enkryptMarketing],
-  data: () => ({}),
+
+  mixins: [enkryptMarketing, handlerAnalytics],
+
   computed: {
     bgStyle() {
       if (
@@ -102,6 +106,14 @@ export default {
         return 'bgXLarge';
       }
       return 'bgSmall';
+    }
+  },
+  methods: {
+    trackEnkrypt() {
+      this.trackLandingPageAmplitude(LANDING_PAGE.GOOGLE_STORE_2);
+    },
+    trackEnkryptLearnMore() {
+      this.trackLandingPageAmplitude(LANDING_PAGE.ENKRYPT_LEARN_MORE);
     }
   }
 };

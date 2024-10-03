@@ -129,9 +129,14 @@ h6 {
 }
 
 /* ========== Border ========== */
+.border-radius--15px {
+  border-radius: 15px !important;
+}
+
 .border-radius--12px {
   border-radius: 12px !important;
 }
+
 .border-radius--10px {
   border-radius: 10px !important;
 }
@@ -142,6 +147,14 @@ h6 {
 
 .border-radius--5px {
   border-radius: 5px !important;
+}
+
+/* ========== Box shadow ========== */
+.bs-wallet-block {
+  box-shadow: 0 12px 17px #151d3f08 !important;
+}
+.bs-small {
+  box-shadow: 0px 1.6px 6px #00000045 !important;
 }
 
 /* ========== Other ========== */
@@ -188,6 +201,20 @@ h6 {
   filter: brightness(10);
 }
 
+/* ========= Remove up down button for input[type=number] ========= */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  /* display: none; <- Crashes Chrome on hover */
+  -webkit-appearance: none;
+  margin: 0;
+  /* <-- Apparently some margin are still there even though it's hidden */
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+  /* Firefox */
+}
+
 /* ===== Custom Scrollbar ===== */
 /* Firefox */
 * {
@@ -208,4 +235,13 @@ h6 {
   background-color: #c8c8c8;
   border-radius: 10px;
   border: 2px solid #f4f4f4;
+}
+
+.v-dialog {
+  border-radius: 12px !important;
+}
+
+// just for prototype
+.prototype-background {
+  background: linear-gradient(146.16deg, #C549FF 4.03%, #654BFF 94.83%);
 }

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="py-3 py-md-7" />
+    <div id="nft" class="py-3 py-md-7" />
     <v-container class="pb-12 pb-lg-0">
       <v-row class="flex-column-reverse flex-lg-row">
         <v-col cols="12" lg="5" class="text-content pr-12 mt-4 mt-lg-0">
@@ -76,7 +76,7 @@
         </v-col>
         <v-col cols="12" lg="7">
           <v-img
-            src="@/assets/images/snippets/send-tx-page.png"
+            src="@/assets/images/snippets/send-tx-page.jpg"
             class="mt-n6"
           />
         </v-col>
@@ -87,10 +87,7 @@
 </template>
 
 <script>
-import AppBlockTitle from '@/core/components/AppBlockTitle';
-
 export default {
-  components: { AppBlockTitle },
   data: vm => ({
     titleData: {
       textProps: '',

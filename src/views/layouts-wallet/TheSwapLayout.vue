@@ -1,5 +1,9 @@
 <template>
-  <the-wrapper-wallet :total-left-col-items="1" :total-right-col-items="2">
+  <the-wrapper-wallet
+    :total-left-col-items="1"
+    has-draggable
+    :total-right-col-items="totalRightColumns"
+  >
     <template #leftColItem1>
       <module-swap
         :is-available="hasSwap"
@@ -9,31 +13,33 @@
       />
     </template>
     <template #rightColItem1>
-      <module-tokens-value />
+      <module-tokens-value :draggable="hasHistory" />
     </template>
     <template v-if="hasHistory && hasSwap" #rightColItem2>
-      <module-transfer-history :is-swap="true" />
+      <module-transfer-history draggable :is-swap="true" />
     </template>
   </the-wrapper-wallet>
 </template>
 
 <script>
-import TheWrapperWallet from '@/core/components/TheWrapperWallet';
-import ModuleSwap from '@/modules/swap/ModuleSwap';
-import ModuleTokensValue from '@/modules/balance/ModuleTokensValue';
-import ModuleTransferHistory from '@/modules/transfer-history/ModuleTransferHistory';
 import { mapGetters } from 'vuex';
+
+import handlerAnalytics from '@/modules/analytics-opt-in/handlers/handlerAnalytics.mixin';
+import { COMMON } from '@/modules/analytics-opt-in/handlers/configs/events.js';
 
 const ETH_TOKEN = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
 const DAI_TOKEN = '0x6b175474e89094c44da98b954eedeac495271d0f';
 
 export default {
   components: {
-    TheWrapperWallet,
-    ModuleSwap,
-    ModuleTokensValue,
-    ModuleTransferHistory
+    TheWrapperWallet: () =>
+      import('@/views/components-wallet/TheWrapperWallet'),
+    ModuleSwap: () => import('@/modules/swap/ModuleSwap'),
+    ModuleTokensValue: () => import('@/modules/balance/ModuleTokensValue'),
+    ModuleTransferHistory: () =>
+      import('@/modules/transfer-history/ModuleTransferHistory')
   },
+  mixins: [handlerAnalytics],
   props: {
     fromToken: {
       type: String,
@@ -53,7 +59,13 @@ export default {
     ...mapGetters('notifications', ['swapNotifications']),
     hasHistory() {
       return this.swapNotifications && this.swapNotifications.length > 0;
+    },
+    totalRightColumns() {
+      return this.hasHistory && this.hasSwap ? 2 : 1;
     }
+  },
+  mounted() {
+    this.trackSwapAmplitude(COMMON.PAGE_SHOWN);
   }
 };
 </script>

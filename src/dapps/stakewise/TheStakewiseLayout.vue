@@ -12,42 +12,31 @@
 </template>
 
 <script>
-import TheWrapperDapp from '@/core/components/TheWrapperDapp';
-import { STAKEWISE_ROUTES } from './configsRoutes';
-import { SUPPORTED_NETWORKS } from './handlers/helpers/supportedNetworks';
 import { mapActions, mapGetters, mapState } from 'vuex';
-import handler from './handlers/stakewiseHandler';
 import BigNumber from 'bignumber.js';
 import { fromWei } from 'web3-utils';
+
+import { STAKEWISE_ROUTES } from './configsRoutes';
+import { SUPPORTED_NETWORKS } from './handlers/helpers/supportedNetworks';
 import { toBNSafe } from '@/core/helpers/numberFormatHelper';
+
+import handler from './handlers/stakewiseHandler';
 
 export default {
   name: 'TheStakewiseLayout',
   components: {
-    TheWrapperDapp
+    TheWrapperDapp: () => import('@/dapps/TheWrapperDapp.vue')
   },
   data() {
     return {
       header: {
         title: 'Stakewise',
-        subtext: 'Stake any amount of ETH and begin earning rewards.'
+        subtext: 'Unstake only. ',
+        dappLink:
+          'https://help.myetherwallet.com/en/articles/6136823-stake-your-eth-using-stakewise'
       },
       activeTab: 0,
-      tabs: [
-        {
-          name: 'Stake ETH',
-          route: { name: STAKEWISE_ROUTES.CORE.NAME },
-          id: 0
-        },
-        {
-          name: 'Compound Rewards',
-          route: {
-            name: STAKEWISE_ROUTES.REWARDS.NAME
-          },
-          id: 1
-        }
-      ],
-      headerImg: require('@/dapps/stakewise/assets/icon-stakewise-purple.svg'),
+      headerImg: require('@/assets/images/icons/dapps/icon-dapp-stakewise.svg'),
       validNetworks: SUPPORTED_NETWORKS,
       stakewiseHandler: {},
       fetchInterval: null
@@ -61,17 +50,27 @@ export default {
         return item.name === this.network.type.name;
       });
       return !!isSupported;
+    },
+    tabs() {
+      const arr = [
+        {
+          name: 'Unstake ETH',
+          route: { name: STAKEWISE_ROUTES.CORE.NAME },
+          id: 0
+        }
+      ];
+
+      return arr;
     }
   },
   watch: {
-    $route(to) {
-      if (to.name === STAKEWISE_ROUTES.REWARDS.NAME) {
-        this.activeTab = this.tabs[1].id;
-      } else {
-        this.activeTab = this.tabs[0].id;
+    web3() {
+      clearInterval(this.fetchInterval);
+      if (this.isSupported) {
+        this.setup();
       }
     },
-    web3() {
+    network() {
       clearInterval(this.fetchInterval);
       if (this.isSupported) {
         this.setup();
@@ -79,9 +78,6 @@ export default {
     }
   },
   mounted() {
-    if (this.$route.name === STAKEWISE_ROUTES.REWARDS.NAME) {
-      this.activeTab = this.tabs[1].id;
-    }
     if (this.isSupported) {
       this.setup();
     }

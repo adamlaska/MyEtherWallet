@@ -6,7 +6,7 @@
     -->
   <the-wrapper-dapp
     :is-new-header="true"
-    :dapp-img="iconColorfulETH"
+    :dapp-img="headerImg"
     :banner-text="header"
     :tab-items="tabs"
     :active-tab="activeTab"
@@ -134,6 +134,7 @@
           :validators="validators"
           :loading="loadingValidators"
           :amount="amount"
+          :refetch-validators="refetchValidators"
         />
       </v-sheet>
     </template>
@@ -141,37 +142,36 @@
 </template>
 
 <script>
+import { mapGetters, mapState } from 'vuex';
 import { SUPPORTED_NETWORKS } from './handlers/supportedNetworks';
 import { STAKED_ROUTE } from './configsRoutes';
-import iconColorfulETH from '@/assets/images/icons/icon-dapp-eth.svg';
-import TheWrapperDapp from '@/core/components/TheWrapperDapp';
-import handlerStaked from './handlers/handlerStaked';
-//import bgDappsStake from '@/assets/images/backgrounds/bg-dapps-stake.svg';
-import { mapGetters, mapState } from 'vuex';
-import StakedStepper from './components/staked-stepper/StakedStepper';
-import StakedStatus from './components/StakedStatus';
 import {
   formatPercentageValue,
   formatFloatingPointValue
 } from '@/core/helpers/numberFormatHelper';
 
+import handlerStaked from './handlers/handlerStaked';
+import handlerAnalyticsMixin from '@/modules/analytics-opt-in/handlers/handlerAnalytics.mixin';
 export default {
   name: 'TheStakedLayout',
   components: {
-    TheWrapperDapp,
-    StakedStepper,
-    StakedStatus
+    TheWrapperDapp: () => import('@/dapps/TheWrapperDapp.vue'),
+    StakedStepper: () => import('./components/staked-stepper/StakedStepper'),
+    StakedStatus: () => import('./components/StakedStatus')
   },
+  mixins: [handlerAnalyticsMixin],
   data() {
     return {
       validNetworks: SUPPORTED_NETWORKS,
-      iconColorfulETH: iconColorfulETH,
+      headerImg: require('@/assets/images/icons/dapps/icon-dapp-stake.svg'),
       amount: 0,
       header: {
         title: 'Ethereum 2.0 staking',
         subtext:
-          'Stake on Ethereum 2.0 and earn continuous rewards for providing a public good to the community.',
-        subtextClass: 'textMedium--text'
+          'Stake on Ethereum 2.0 and earn continuous rewards for providing a public good to the community. ',
+        subtextClass: 'textMedium--text',
+        dappLink:
+          'https://help.myetherwallet.com/en/articles/5380731-eth-validator-staking-with-mew-portfolio'
       },
       activeTab: 0,
       handlerStaked: {},
@@ -193,7 +193,7 @@ export default {
     };
   },
   computed: {
-    ...mapState('wallet', ['web3', 'address']),
+    ...mapState('wallet', ['web3', 'address', 'identifier']),
     ...mapGetters('global', ['network']),
     ...mapGetters('article', ['getArticle']),
     /**
@@ -302,7 +302,9 @@ export default {
       this.handlerStaked = new handlerStaked(
         this.web3,
         this.network,
-        this.address
+        this.address,
+        this.trackDapp,
+        this.identifier
       );
     }
   },
@@ -329,8 +331,15 @@ export default {
      * and set amount value for staked status
      */
     sendTransaction(amountETH) {
+      this.trackDapp('StakedSendStake');
       this.handlerStaked.sendTransaction();
       this.amount = amountETH;
+    },
+    /**
+     * refetch validators
+     */
+    refetchValidators() {
+      this.handlerStaked.getValidators();
     }
   }
 };
@@ -340,6 +349,7 @@ export default {
 .staked-tab-inactive {
   background-color: rgba(0, 0, 0, 0.24) !important;
 }
+
 .staked-tab-active::before {
   opacity: 0 !important;
 }

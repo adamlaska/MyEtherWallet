@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="d-flex flex-column greyLight pa-6 rounded">
+    <div class="d-flex flex-column bgWalletBlockDark pa-6 rounded">
       <div class="d-flex justify-space-between">
         <span>{{ $t('ens.register.domain-name') }}:</span>
         <span class="font-weight-medium">{{ name }}</span>
@@ -48,7 +48,7 @@
         class="d-flex justify-space-between"
       >
         <span class="font-weight-medium">
-          Generating registration cost, please wait...
+          Generating registration cost. Please wait...
         </span>
       </div>
 
@@ -60,7 +60,7 @@
       >
         <span>Registration Cost:</span>
         <span class="font-weight-medium">
-          {{ totalCost }} ETH (${{ totalCostUsd }})
+          {{ totalCost }} ETH ({{ totalCostUsd }})
         </span>
       </div>
 
@@ -108,7 +108,16 @@
     <div v-if="notEnoughFunds || noFundsForRegFees">
       <span class="balance-error d-flex mt-5 justify-center align-center">
         Not enough balance:
-        <a target="_blank" class="link" @click="openMoonpay">
+        <a
+          v-show="network.type.canBuy"
+          target="_blank"
+          class="link"
+          @click="
+            () => {
+              openBuySell('ENSRegister');
+            }
+          "
+        >
           <u>Buy More Eth</u>
         </a>
       </span>
@@ -137,6 +146,7 @@
 
 <script>
 import buyMore from '@/core/mixins/buyMore.mixin.js';
+import { mapGetters } from 'vuex';
 export default {
   name: 'EnsRegister',
   mixins: [buyMore],
@@ -212,6 +222,9 @@ export default {
       timer: () => {},
       canRegister: false
     };
+  },
+  computed: {
+    ...mapGetters('global', ['network'])
   },
   watch: {
     minimumAge(newVal) {

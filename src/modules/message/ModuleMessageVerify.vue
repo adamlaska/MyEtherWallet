@@ -14,8 +14,13 @@
         :value="message"
       ></v-textarea>
 
-      <div v-if="signResult" class="walletBg pa-3 VerifyMessage">
-        {{ signer }}
+      <div
+        v-if="signResult"
+        class="walletBg pa-3 VerifyMessage d-flex flex-wrap"
+      >
+        <span class="signer mr-1">
+          {{ signer }}
+        </span>
         <span v-if="didSign" class="font-weight-medium">
           did sign the message
         </span>
@@ -28,31 +33,31 @@
         {{ $t('signMessage.failed') }}
       </div>
 
-      <mew-button
-        :disabled="!message"
-        title="Verify"
-        btn-size="xlarge"
-        class="display--block mx-auto mt-5 VerifyButton"
-        @click.native="verifyMessage"
-      />
-      <mew-button
-        btn-style="transparent"
-        title="Clear All"
-        btn-size="small"
-        class="display--block mx-auto mt-5"
-        @click.native="clearAll"
-      />
+      <div
+        :class="['text-right', signResult || verificationError ? 'pt-3' : '']"
+      >
+        <mew-button
+          btn-style="light"
+          title="Clear all"
+          class="mr-4"
+          @click.native="clearAll"
+        />
+        <mew-button
+          :disabled="!message"
+          title="Verify"
+          @click.native="verifyMessage"
+        />
+      </div>
     </template>
   </mew-module>
 </template>
 
 <script>
-import SignAndVerifyMessage from '@/modules/message/handlers';
 import { toChecksumAddress } from 'ethereumjs-util';
 
+import SignAndVerifyMessage from '@/modules/message/handlers';
 export default {
   name: 'ModuleMessageVerify',
-  components: {},
   data() {
     return {
       title: 'Verify Message',
@@ -64,7 +69,6 @@ export default {
       signer: ''
     };
   },
-  computed: {},
   mounted() {
     this.signAndVerify = new SignAndVerifyMessage(this.web3, this.address);
   },
@@ -108,4 +112,8 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.signer {
+  overflow-wrap: anywhere;
+}
+</style>

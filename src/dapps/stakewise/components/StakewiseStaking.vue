@@ -28,17 +28,6 @@
     </div>
 
     <!-- ======================================================================================= -->
-    <!-- You are not staking user message -->
-    <!-- ======================================================================================= -->
-    <div v-if="!hasStaked && !hasPending" class="mt-4">
-      You are currently not staking any {{ currencyName }}. To earn rewards
-      start staking.
-      <span class="greenPrimary--text cursor--pointer" @click="scrollToInput"
-        >Start staking</span
-      >
-    </div>
-
-    <!-- ======================================================================================= -->
     <!-- Pending -->
     <!-- ======================================================================================= -->
     <div v-if="isEthNetwork">
@@ -112,14 +101,6 @@
         :disabled="enoughToCoverRedeem"
         @click.native="executeSwap"
       />
-      <mew-button
-        :title="`Stake more ${currencyName}`"
-        :btn-style="compoundRewards ? 'background' : 'transparent'"
-        btn-size="small"
-        class="py-1"
-        :disabled="enoughToCoverRedeem"
-        @click.native="scrollToInput"
-      />
     </div>
 
     <!-- ======================================================================================= -->
@@ -127,33 +108,37 @@
     <!-- ======================================================================================= -->
     <div v-if="enoughToCoverRedeem" class="mt-4 greyPrimary--text">
       You do not have enough ETH to cover transaction fee.
-      <a rel="noopener noreferrer" @click="openMoonpay"> Buy more ETH</a>
+      <a
+        rel="noopener noreferrer"
+        @click="
+          () => {
+            openBuySell('StakewiseStaking');
+          }
+        "
+      >
+        Buy more ETH</a
+      >
     </div>
   </div>
 </template>
 
 <script>
 import { isEmpty } from 'lodash';
+import { mapActions, mapGetters, mapState } from 'vuex';
+import { fromWei } from 'web3-utils';
+import BigNumber from 'bignumber.js';
+
 import {
   SETH2_GOERLI_CONTRACT,
   SETH2_MAINNET_CONTRACT
 } from '@/dapps/stakewise/handlers/configs.js';
 import sEthAbi from '@/dapps/stakewise/handlers/abi/stakedEthToken.js';
-import { mapActions, mapGetters, mapState } from 'vuex';
-import { fromWei } from 'web3-utils';
-import BigNumber from 'bignumber.js';
-import { STAKEWISE_ROUTES } from '../configsRoutes';
 import { formatFloatingPointValue } from '@/core/helpers/numberFormatHelper';
 import buyMore from '@/core/mixins/buyMore.mixin.js';
 export default {
   name: 'ModuleSideStaking',
-  components: {},
   mixins: [buyMore],
   props: {
-    compoundRewards: {
-      type: Boolean,
-      default: false
-    },
     txFee: {
       type: String,
       default: ''
@@ -199,9 +184,7 @@ export default {
       return true;
     },
     linkUrl() {
-      return this.ethvmSupport
-        ? this.network.type.isEthVMSupported.blockExplorerTX
-        : this.network.type.blockExplorerTX;
+      return this.network.type.blockExplorerTX;
     },
     hasPending() {
       const txList = this.isEthNetwork
@@ -302,24 +285,6 @@ export default {
           }
         });
       }, 10000);
-    },
-    changeRoute() {
-      return new Promise(resolve => {
-        resolve(
-          this.$router.push({
-            name: STAKEWISE_ROUTES.CORE.NAME,
-            query: { module: 'stake' }
-          })
-        );
-      });
-    },
-    scrollToInput() {
-      this.$emit('scroll');
-      this.changeRoute().then(() => {
-        this.$nextTick(() => {
-          this.$emit('set-max');
-        });
-      });
     }
   }
 };
@@ -334,11 +299,11 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--v-greyLight-base) !important;
+  border: 1px solid var(--v-borderInput-base) !important;
   border-radius: 50% !important;
   width: 32px;
   height: 32px;
-  background-color: var(--v-whiteBackground-base);
+  background-color: var(--v-alwaysWhite-base);
 
   img {
     height: 28px;

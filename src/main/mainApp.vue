@@ -4,51 +4,67 @@
     <module-toast />
     <module-global-modals />
     <module-analytics />
-    <module-moon-pay :open="moonPayOpen" @close="moonPayOpen = false" />
+    <module-buy-sell :open="buySellOpen" @close="buySellOpen = false" />
   </v-app>
 </template>
 
 <script>
 import { mapActions, mapGetters, mapState } from 'vuex';
-import ModuleToast from '@/modules/toast/ModuleToast.vue';
-import ModuleGlobalModals from '@/modules/global-modals/ModuleGlobalModals';
-import ModuleAnalytics from '@/modules/analytics-opt-in/ModuleAnalytics';
+import { v4 as uuidv4 } from 'uuid';
+import '@formatjs/intl-numberformat/polyfill';
+import '@formatjs/intl-numberformat/locale-data/en';
+
+import {
+  getInjectedName,
+  getInjectedIcon
+} from '@/core/helpers/detectProvider.js';
 import { PWA_EVENTS } from '@/core/helpers/common';
 import {
   Toast,
   ERROR,
   SUCCESS,
-  INFO
+  INFO,
+  WARNING
 } from '@/modules/toast/handler/handlerToast';
-import ModuleMoonPay from '@/modules/moon-pay/ModuleMoonPay';
-import { MOONPAY_EVENT } from '@/modules/moon-pay/helpers';
+import { BUYSELL_EVENT } from '@/modules/buy-sell/helpers';
 import { EventBus } from '@/core/plugins/eventBus';
-import '@formatjs/intl-numberformat/polyfill';
-import '@formatjs/intl-numberformat/locale-data/en';
+import handlerAnalyticsMixin from '@/modules/analytics-opt-in/handlers/handlerAnalytics.mixin.js';
+import {
+  BUY_SELL,
+  SWAP
+} from '@/modules/analytics-opt-in/handlers/configs/events.js';
+
 export default {
   name: 'App',
   components: {
-    ModuleToast,
-    ModuleGlobalModals,
-    ModuleAnalytics,
-    ModuleMoonPay
+    ModuleToast: () => import('@/modules/toast/ModuleToast.vue'),
+    ModuleGlobalModals: () =>
+      import('@/modules/global-modals/ModuleGlobalModals'),
+    ModuleAnalytics: () => import('@/modules/analytics-opt-in/ModuleAnalytics'),
+    ModuleBuySell: () => import('@/modules/buy-sell/ModuleBuySell')
   },
+  mixins: [handlerAnalyticsMixin],
   data() {
     return {
-      moonPayOpen: false
+      buySellOpen: false
     };
   },
   computed: {
     ...mapState('custom', ['addressBook']),
+    ...mapState('wallet', ['identifier']),
     ...mapState('addressBook', ['isMigrated']),
     ...mapState('global', ['preferredCurrency']),
     ...mapState('article', ['timestamp']),
-    ...mapGetters('article', ['articleList'])
+    ...mapGetters('article', ['articleList']),
+    ...mapGetters('global', ['network'])
   },
   created() {
     const succMsg = this.$t('common.updates.new');
     const updateMsg = this.$t('common.updates.update-found');
     const errMsg = this.$t('common.updates.update-error');
+    this.$vuetify.theme.dark = false;
+
+    // pwa listeners
     window.addEventListener(PWA_EVENTS.PWA_UPDATED, () => {
       Toast(succMsg, {}, SUCCESS);
     });
@@ -60,8 +76,52 @@ export default {
     });
   },
   mounted() {
-    EventBus.$on(MOONPAY_EVENT, () => {
-      this.openBuy();
+    // manually add web3 wallet detected
+    if (window.ethereum) {
+      const name = getInjectedName(window.ethereum);
+      const info = {
+        rdns: 'com.detected.injectedwallet',
+        uuid: uuidv4(),
+        name: name,
+        icon: getInjectedIcon(name)
+      };
+      const provider = window.ethereum;
+      this.storeEIP6963Wallet({ info, provider });
+    }
+    // epi6963 listener
+    window.addEventListener('eip6963:announceProvider', e => {
+      this.storeEIP6963Wallet(e.detail);
+    });
+    EventBus.$on('swapTxBroadcasted', hash => {
+      const id = this.network.type.name;
+      this.trackSwapAmplitude(SWAP.BROADCASTED, { hash: hash, network: id });
+    });
+    EventBus.$on('swapTxReceivedReceipt', hash => {
+      const id = this.network.type.name;
+      this.trackSwapAmplitude(SWAP.RECEIPT, {
+        hash: hash,
+        network: id,
+        wallet: this.identifier
+      });
+    });
+    EventBus.$on('swapTxFailed', hash => {
+      const id = this.network.type.name;
+      const passedHash = hash === '0x' ? 'no hash' : hash;
+      this.trackSwapAmplitude(SWAP.FAILED, { hash: passedHash, network: id });
+    });
+    EventBus.$on('swapTxNotBroadcastedFailed', () => {
+      this.trackSwapAmplitude(SWAP.NOT_BROADCASTED);
+    });
+    EventBus.$on(BUYSELL_EVENT, arg => {
+      if (!this.network.type.canBuy) {
+        Toast(
+          'Unsupported network to buy. Please switch network to ETH, POL, or BNB to buy.',
+          {},
+          WARNING
+        );
+        return;
+      }
+      this.openBuy(arg);
     });
     this.footerHideIntercom();
     this.logMessage();
@@ -87,21 +147,39 @@ export default {
         this.setMigrated(true);
       });
     }
+
     const _self = this;
     // Close modal with 'esc' key
     document.addEventListener('keydown', e => {
       if (e.keyCode === 27) {
-        _self.moonPayOpen = false;
+        _self.buySellOpen = false;
       }
     });
+  },
+  beforeDestroy() {
+    EventBus.$off(BUYSELL_EVENT);
+    EventBus.$off('swapTxBroadcasted');
+    EventBus.$off('swapTxReceivedReceipt');
+    EventBus.$off('swapTxFailed');
+    EventBus.$off('swapTxNotBroadcastedFailed');
+    document.removeEventListener('visibilitychange');
+    window.removeEventListener('mouseout');
+    window.removeEventListener('eip6963:announceProvider');
   },
   methods: {
     ...mapActions('global', ['setOnlineStatus']),
     ...mapActions('external', ['setCurrency']),
     ...mapActions('addressBook', ['setMigrated', 'setAddressBook']),
     ...mapActions('article', ['updateArticles']),
-    openBuy() {
-      this.moonPayOpen = true;
+    ...mapActions('article', ['updateArticles']),
+    ...mapActions('popups', ['showSurveyPopup']),
+    ...mapActions('external', ['storeEIP6963Wallet']),
+    openBuy(arg) {
+      this.trackBuySell(BUY_SELL.OPEN_BUY_SELL_MODAL, {
+        module: arg[0],
+        path: arg[1]
+      });
+      this.buySellOpen = true;
     },
     logMessage() {
       /* eslint-disable no-console */
@@ -136,5 +214,5 @@ export default {
 
 <style lang="scss">
 @import '@/assets/styles/GlobalStyles.scss';
-@import '@myetherwallet/mew-components/src/assets/styles/global.scss';
+@import '@/assets/styles/GlobalComponents.scss';
 </style>
