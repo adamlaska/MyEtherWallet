@@ -1,6 +1,6 @@
 <template>
   <div class="component-container">
-    <div class="py-3 py-md-12" />
+    <div id="dapps" class="py-3 py-md-12" />
     <v-container>
       <v-row class="flex-column-reverse flex-lg-row">
         <v-col
@@ -72,7 +72,7 @@
         <v-col cols="12" lg="7">
           <v-img
             class="block-image"
-            src="@/assets/images/snippets/new-dapps-page.png"
+            src="@/assets/images/snippets/new-dapps-page.jpg"
             contain
           />
         </v-col>
@@ -82,10 +82,7 @@
 </template>
 
 <script>
-import AppBlockTitle from '@/core/components/AppBlockTitle';
-
 export default {
-  components: { AppBlockTitle },
   data: vm => ({
     titleData: {
       textProps: '',

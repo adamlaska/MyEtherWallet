@@ -20,7 +20,7 @@
       Mobile Connection Protocol Buttons
     =====================================================================================
     -->
-    <div style="max-width: 650px; width: 100%" class="mx-auto mb-n5">
+    <div style="max-width: 650px; width: 100%" class="mx-auto mb-n5 pt-5">
       <div v-for="(btn, key) in buttons" :key="key">
         <mew-button
           has-full-width
@@ -50,15 +50,17 @@
 </template>
 
 <script>
+import { mapActions } from 'vuex';
+
 import { Toast, SENTRY } from '@/modules/toast/handler/handlerToast';
 import {
   WalletConnectWallet,
   WalletLinkWallet
 } from '@/modules/access-wallet/hybrid/handlers';
-import { mapActions } from 'vuex';
 import { ROUTES_WALLET } from '@/core/configs/configRoutes';
+
 import handlerAnalytics from '@/modules/analytics-opt-in/handlers/handlerAnalytics.mixin';
-import WALLET_TYPES from './common/walletTypes';
+import { ACCESS_WALLET } from '@/modules/analytics-opt-in/handlers/configs/events';
 
 export default {
   name: 'ModuleAccessWalletMobile',
@@ -97,14 +99,20 @@ export default {
     ...mapActions('wallet', ['setWallet']),
     openWalletConnect() {
       try {
+        this.trackAccessWalletAmplitude(ACCESS_WALLET.WALLET_CONNECT_QR_SHOWN);
         WalletConnectWallet()
           .then(_newWallet => {
             this.setWallet([_newWallet]).then(() => {
-              this.trackAccessWallet(WALLET_TYPES.WALLET_CONNECT);
+              this.trackAccessWalletAmplitude(
+                ACCESS_WALLET.WALLET_CONNECT_QR_SUCCESSFUL
+              );
               this.$router.push({ name: ROUTES_WALLET.DASHBOARD.NAME });
             });
           })
           .catch(e => {
+            this.trackAccessWalletAmplitude(
+              ACCESS_WALLET.WALLET_CONNECT_QR_FAILED
+            );
             WalletConnectWallet.errorHandler(e);
           });
       } catch (e) {
@@ -113,14 +121,20 @@ export default {
     },
     openWalletLink() {
       try {
+        this.trackAccessWalletAmplitude(ACCESS_WALLET.WALLET_LINK_QR_SHOWN);
         WalletLinkWallet()
           .then(_newWallet => {
             this.setWallet([_newWallet]).then(() => {
-              this.trackAccessWallet(WALLET_TYPES.WALLET_LINK);
+              this.trackAccessWalletAmplitude(
+                ACCESS_WALLET.WALLET_LINK_QR_SUCCESSFUL
+              );
               this.$router.push({ name: ROUTES_WALLET.DASHBOARD.NAME });
             });
           })
           .catch(e => {
+            this.trackAccessWalletAmplitude(
+              ACCESS_WALLET.WALLET_LINK_QR_FAILED
+            );
             WalletLinkWallet.errorHandler(e);
           });
       } catch (e) {

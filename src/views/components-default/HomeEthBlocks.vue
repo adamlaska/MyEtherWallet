@@ -5,14 +5,14 @@
         <v-col class="pa-0" cols="12" md="6">
           <div style="max-width: 520px; margin: 0 auto">
             <img
+              v-lazy="three"
               class="d-lg-none d-md-none d-inline"
               width="100%"
-              :src="three"
             />
             <img
+              v-lazy="six"
               class="d-lg-inline d-md-inline d-none"
               width="100%"
-              :src="six"
             />
           </div>
         </v-col>
@@ -42,12 +42,7 @@
                 $t('home.eth-blocks.btn-text')
                   | lokalise('home.eth-blocks.btn-text')
               "
-              @click.native="
-                $router.push({
-                  name: 'EthBlocks',
-                  params: {}
-                })
-              "
+              @click.native="navigateToEthBlocks"
             ></mew-button>
           </div>
         </v-col>
@@ -57,16 +52,27 @@
 </template>
 
 <script>
-import ethBlocksThree from '@/assets/images/icons/eth-blocks-3.png';
-import ethBlocksSix from '@/assets/images/icons/eth-blocks-6.png';
+import ethBlocksThree from '@/assets/images/icons/eth-blocks-3.jpg';
+import ethBlocksSix from '@/assets/images/icons/eth-blocks-6.jpg';
+import handlerAnalytics from '@/modules/analytics-opt-in/handlers/handlerAnalytics.mixin';
+import { LANDING_PAGE } from '@/modules/analytics-opt-in/handlers/configs/events.js';
+import { ETH_BLOCKS_ROUTE } from '@/dapps/eth-blocks/configsRoutes';
 export default {
   name: 'HomeEthBlocks',
-  components: {},
+  mixins: [handlerAnalytics],
   data() {
     return {
       three: ethBlocksThree,
       six: ethBlocksSix
     };
+  },
+  methods: {
+    navigateToEthBlocks() {
+      this.trackLandingPageAmplitude(LANDING_PAGE.ACCESS_WALLET_MINT);
+      this.$router.push({
+        name: ETH_BLOCKS_ROUTE.CORE.NAME
+      });
+    }
   }
 };
 </script>

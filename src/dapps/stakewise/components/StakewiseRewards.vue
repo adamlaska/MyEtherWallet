@@ -51,14 +51,6 @@
         :disabled="!hasBalance || enoughToCoverRedeem"
         @click.native="executeSwap"
       />
-      <mew-button
-        title="Compound"
-        :btn-style="compoundRewards ? 'transparent' : 'background'"
-        btn-size="small"
-        class="mew-body"
-        :disabled="!hasBalance || enoughToCoverRedeem"
-        @click.native="scrollToInput"
-      />
     </div>
 
     <!-- ======================================================================================= -->
@@ -72,18 +64,13 @@
 
 <script>
 import BigNumber from 'bignumber.js';
-import { STAKEWISE_ROUTES } from '@/dapps/stakewise/configsRoutes';
 import { mapGetters, mapState } from 'vuex';
-import { formatFloatingPointValue } from '@/core/helpers/numberFormatHelper';
 
+import { formatFloatingPointValue } from '@/core/helpers/numberFormatHelper';
 export default {
   name: 'ModuleSideRewards',
-  components: {},
+
   props: {
-    compoundRewards: {
-      type: Boolean,
-      default: false
-    },
     txFee: {
       type: String,
       default: ''
@@ -151,24 +138,6 @@ export default {
   methods: {
     executeSwap() {
       this.$emit('redeem-to-eth', 'reth', this.rethBalance);
-    },
-    changeRoute() {
-      return new Promise(resolve => {
-        resolve(
-          this.$router.push({
-            name: STAKEWISE_ROUTES.REWARDS.NAME,
-            query: { module: 'compound' }
-          })
-        );
-      });
-    },
-    scrollToInput() {
-      this.$emit('scroll');
-      this.changeRoute().then(() => {
-        this.$nextTick(() => {
-          this.$emit('set-max');
-        });
-      });
     }
   }
 };
@@ -182,11 +151,11 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--v-greyLight-base) !important;
+  border: 1px solid var(--v-borderInput-base) !important;
   border-radius: 50% !important;
   width: 32px;
   height: 32px;
-  background-color: var(--v-whiteBackground-base);
+  background-color: var(--v-alwaysWhite-base);
 
   img {
     height: 28px;

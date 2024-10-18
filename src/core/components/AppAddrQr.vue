@@ -5,7 +5,7 @@
       Title
     =====================================================================================
     -->
-    <div class="mew-heading-2 mb-3 mr-3">
+    <div class="mew-heading-2 mb-3">
       {{ $t('interface.qr.title') }}
     </div>
 
@@ -19,7 +19,7 @@
     </div>
     <!--
     =====================================================================================
-      Identicon and acount
+      Identicon and account
     =====================================================================================
     -->
     <div class="d-flex align-center mb-4">
@@ -43,7 +43,7 @@
       />
       <div class="inner-content pa-3 pa-sm-8 d-flex align-center">
         <div class="white pa-1" style="border-radius: 7px">
-          <qr-code :data="address" :height="132" :width="132" />
+          <app-qr-code :data="address" :height="132" :width="132" />
         </div>
         <div class="pl-3">
           <div
@@ -69,11 +69,13 @@ import clipboardCopy from 'clipboard-copy';
 import { Toast, SUCCESS } from '@/modules/toast/handler/handlerToast';
 import { mapState, mapGetters } from 'vuex';
 import { toChecksumAddress } from '@/core/helpers/addressUtils';
+import { isObject } from 'lodash';
 export default {
   computed: {
     ...mapState('wallet', ['address']),
     ...mapGetters('global', ['network']),
     getChecksumAddressString() {
+      if (!this.address) return '';
       return toChecksumAddress(this.address);
     }
   },
@@ -87,6 +89,7 @@ export default {
     },
     animateMewCard() {
       const el = document.querySelector('.mew-card');
+      if (!el || !isObject(el?.style)) return;
       el.style.opacity = 0;
       anime({
         targets: el,
@@ -111,9 +114,11 @@ export default {
 
 <style lang="scss" scoped>
 .wallet-card-container {
+  background-color: var(--v-bgWallet-base);
   overflow: hidden;
   border-radius: 20px;
   position: relative;
+  min-height: 172px;
   .container-qr--addr {
     word-break: break-all;
     color: white;

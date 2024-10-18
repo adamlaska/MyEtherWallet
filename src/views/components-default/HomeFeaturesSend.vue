@@ -1,5 +1,5 @@
 <template>
-  <mew6-white-sheet
+  <white-sheet
     class="mew-component--features-send pa-6 pa-md-10 no-pointer-events"
     max-width="700px"
   >
@@ -23,16 +23,17 @@
         </v-col>
       </v-row>
     </div>
-  </mew6-white-sheet>
+  </white-sheet>
 </template>
 
 <script>
 import { mapGetters, mapState } from 'vuex';
-import ModuleAddressBook from '@/modules/address-book/ModuleAddressBook';
 
 export default {
   name: 'HomeFeaturesSend',
-  components: { ModuleAddressBook },
+  components: {
+    ModuleAddressBook: () => import('@/modules/address-book/ModuleAddressBook')
+  },
   data: () => ({
     data: '1337'
   }),

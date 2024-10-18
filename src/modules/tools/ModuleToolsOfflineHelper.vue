@@ -44,18 +44,15 @@
       :has-indicator="true"
     >
       <template #moduleBody>
-        <mew-stepper :items="stepperItems" :on-step="currentStep"></mew-stepper>
-
-        <h5
-          v-if="$vuetify.breakpoint.mdAndDown"
-          class="text-center font-weight-medium"
-        >
-          {{ stepperItems[currentStep - 1].name }}
-        </h5>
+        <mew-stepper
+          :compact="$vuetify.breakpoint.smAndDown"
+          :items="stepperItems"
+          :on-step="currentStep"
+        ></mew-stepper>
 
         <div v-if="currentStep === 1">
           <v-sheet color="transparent" max-width="600px" class="mx-auto py-10">
-            <network-switch />
+            <network-switch :is-wallet="false" />
           </v-sheet>
           <mew-button
             btn-size="xlarge"
@@ -118,10 +115,11 @@
             </div>
             <mew-button
               v-if="detailLength"
-              class="mt-2 display--block mx-auto DownloadButton"
+              class="mt-2 d-flex align-center justify-center mx-auto DownloadButton"
               title="Export JSON file"
               btn-size="small"
               btn-style="transparent"
+              style="max-width: 130px"
               :btn-link="fileLink"
               :download="exportFileName"
             />
@@ -222,17 +220,21 @@
 
 <script>
 import { mapGetters, mapState } from 'vuex';
-import { isAddress, fromWei, toHex } from 'web3-utils';
+import { isAddress, fromWei, toHex, toBN } from 'web3-utils';
 import { Transaction } from 'ethereumjs-tx';
-import commonGenerator from '@/core/helpers/commonGenerator';
-import sanitizeHex from '@/core/helpers/sanitizeHex';
-import NetworkSwitch from '@/modules/network/components/NetworkSwitch.vue';
 import { BigNumber } from 'bignumber.js';
 import { toChecksumAddress } from 'ethereumjs-util';
 import { isEmpty } from 'lodash';
+
+import commonGenerator from '@/core/helpers/commonGenerator';
+import sanitizeHex from '@/core/helpers/sanitizeHex';
+
 export default {
   name: 'ModuleToolsOfflineHelper',
-  components: { NetworkSwitch },
+  components: {
+    NetworkSwitch: () =>
+      import('@/modules/network/components/NetworkSwitch.vue')
+  },
   props: {
     isHomePage: {
       type: Boolean,
@@ -293,9 +295,8 @@ export default {
     ]
   }),
   computed: {
-    ...mapState('wallet', ['web3']),
+    ...mapState('wallet', ['web3', 'address']),
     ...mapState('addressBook', ['addressBookStore']),
-    ...mapState('wallet', ['address']),
     ...mapGetters('global', ['network']),
     addresses() {
       return this.isHomePage
@@ -386,15 +387,17 @@ export default {
      * @returns {object} data - used for exporting to json,
      * details - details to be displayed to the user
      **********************************************************/
-    async data() {
+    async txData() {
       const { eth } = this.web3;
       const chainID = await eth.getChainId();
-      const gasPrice = await eth.getGasPrice();
+      const fetchedGasPrice = await eth.getGasPrice();
+      const gasPrice = fromWei(fetchedGasPrice, 'gwei');
       const nonce = await eth.getTransactionCount(this.fromAddress);
       return {
         data: {
           nonce,
-          gasPrice
+          fetchedGasPrice,
+          chainID
         },
         details: {
           address: this.fromAddress,
@@ -412,7 +415,7 @@ export default {
      *************************************************************/
     async setDetails(val) {
       if (val) return (this.details = val);
-      const { details } = await this.data();
+      const { details } = await this.txData();
       this.details = [
         {
           title: 'Sender',
@@ -434,7 +437,7 @@ export default {
         },
         {
           title: 'Gas Price',
-          value: details.gasPrice
+          value: `${details.gasPrice} gwei`
         }
       ];
       this.exportFile();
@@ -444,10 +447,11 @@ export default {
      * exports data to json
      ************************/
     async exportFile() {
-      let { data } = await this.data();
+      let { data } = await this.txData();
       data = {
         nonce: toHex(data.nonce),
-        gasPrice: toHex(data.gasPrice)
+        gasPrice: toHex(data.fetchedGasPrice),
+        chainID: toHex(data.chainID)
       };
       const blob = new Blob([JSON.stringify(data)], { type: 'mime' });
       this.fileLink = window.URL.createObjectURL(blob);
@@ -492,7 +496,7 @@ export default {
      * - raw: raw data
      * - details: detailed data (includes more fields)
      ***********************************************************************************/
-    rawData() {
+    async rawTxData() {
       try {
         const tx = new Transaction(this.getRawTransaction, {
           common: commonGenerator(this.network)
@@ -505,7 +509,7 @@ export default {
         const basicDetails = {
           from: txFrom,
           nonce: this.gtr(txValues.nonce),
-          gasPrice: fromWei(this.gtr(txValues.gasPrice)),
+          gasPrice: this.gtr(txValues.gasPrice),
           gasLimit: this.gtr(txValues.gasLimit),
           to: txValues.to,
           value: fromWei(this.gtr(txValues.value), 'ether'),
@@ -550,7 +554,7 @@ export default {
      **********************************************************/
     async setRawTransaction(val) {
       if (val) return (this.rawTransaction = val);
-      const { raw, fee } = this.rawData();
+      const { raw, fee } = await this.rawTxData();
       if (raw) {
         this.rawTransaction = JSON.stringify(raw, null, 3);
         const { eth } = this.web3;
@@ -560,8 +564,8 @@ export default {
         if (!addressMatch)
           this.alerts.push({
             name: 'addressMatch',
-            severity: 'warning',
-            title: 'Warning',
+            severity: 'error',
+            title: 'Error',
             message: 'Signer does not match selected address!'
           });
         if (BigNumber(balance).lt(fee))
@@ -580,9 +584,9 @@ export default {
      * @param {string} val[].title - Name of value
      * @param {string|number} val[].value - Value
      **********************************************************/
-    setRawDetails(val) {
+    async setRawDetails(val) {
       if (val) return (this.transactionDetails = val);
-      const { details } = this.rawData();
+      const { details } = await this.rawTxData();
       if (details)
         this.transactionDetails = [
           {
@@ -644,10 +648,18 @@ export default {
       };
       if (files[0]) reader.readAsBinaryString(files[0]);
     },
-    sendTx() {
+    async sendTx() {
       const { eth } = this.web3;
+      const actualNonce = await eth.getTransactionCount(this.fromAddress);
+      const { raw } = await this.rawTxData();
+      const nonce = raw.nonce;
       this.dialog = true;
       this.txLoading = true;
+      if (toBN(actualNonce).gt(toBN(nonce))) {
+        this.dialogAlert = 'Nonce too low!';
+        this.txLoading = false;
+        return;
+      }
       eth
         .sendSignedTransaction(this.getRawTransaction)
         .once('transactionHash', hash => {

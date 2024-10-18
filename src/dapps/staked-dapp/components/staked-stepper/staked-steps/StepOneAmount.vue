@@ -24,9 +24,14 @@
           :buy-more-str="
             errorMessages ? (network.type.canBuy ? 'Buy more.' : null) : null
           "
+          filter-placeholder="Search for Amount"
           is-custom
           outlined
-          @buyMore="openMoonpay"
+          @buyMore="
+            () => {
+              openBuySell('StakedAmount');
+            }
+          "
           @input="setAmount"
         />
         <!--
@@ -34,7 +39,7 @@
     Staking APR and fee
     ===================================================
     -->
-        <div class="pt-6">
+        <div class="mt-12">
           <v-row>
             <v-col
               cols="6"
@@ -53,11 +58,11 @@
               md="6"
               class="py-1 text-uppercase textLight--text font-weight-bold d-flex align-center"
             >
-              Staking Fee
+              <div class="staking-fee">Staking Fee</div>
               <mew-tooltip class="ml-1" :text="toolTipFee" max-width="320px" />
             </v-col>
             <v-col cols="6" md="6" class="py-1 text-right">
-              0.75% <span class="textLight--text">0.3 ETH min</span>
+              {{ stakingFee }} ETH
             </v-col>
           </v-row>
         </div>
@@ -102,15 +107,13 @@
     User information
     ===================================================
     -->
-      <div class="greyLight px-6 px-sm-12 py-8 mt-2 border-radius--10px">
+      <div
+        class="bgWalletBlockDark px-6 px-sm-12 py-8 mt-6 border-radius--10px"
+      >
         <ul class="user-info textMedium--text">
           <li>Your ETH is staked with our partner Staked.us</li>
           <li>Staked.us will create and maintain Eth2 validators for you</li>
-          <li>Earn up to 21% Annualized rewards</li>
-          <li class="orangePrimary--text">
-            You can neither spend nor transfer your Eth2 funds until an unknown
-            date in the future when transfers are enabled on the Eth2 chain
-          </li>
+          <li>Earn up to 6% annualized rewards</li>
         </ul>
       </div>
       <!--
@@ -132,17 +135,18 @@
 </template>
 
 <script>
-import BorderBlock from '@/components/BorderBlock';
 import BigNumber from 'bignumber.js';
 import { mapState, mapGetters } from 'vuex';
+
 import {
   formatPercentageValue,
   formatFloatingPointValue
 } from '@/core/helpers/numberFormatHelper';
 import buyMore from '@/core/mixins/buyMore.mixin.js';
+import handlerAnalyticsMixin from '@/modules/analytics-opt-in/handlers/handlerAnalytics.mixin';
+
 export default {
-  components: { BorderBlock },
-  mixins: [buyMore],
+  mixins: [buyMore, handlerAnalyticsMixin],
   props: {
     currentApr: {
       type: String,
@@ -152,7 +156,7 @@ export default {
   data() {
     return {
       toolTipFee:
-        '0.75% staking fee (or 0.3 ETH, whichever is higher) is covering staking until transfers are enabled on Eth2. Once transfers are enabled, you will have a choice to either continue staking your ETH for an additional fee, or withdraw your ETH and earned rewards and stop staking.',
+        'In order to provide uninterrupted, reliable staking service and maintain your validators, Staked.us and MEW retain 13% of your rewards as a service fee. APR figures shown here already account for this fee. In addition, MEW will charge a one-time staking fee of 0.1 ETH for each 32 ETH you stake.',
       amount: 0,
       selectedItem: {}
     };
@@ -162,11 +166,17 @@ export default {
     ...mapGetters('wallet', ['balanceInETH']),
     ...mapGetters('external', ['fiatValue']),
     ...mapGetters('global', ['network', 'getFiatValue']),
+    stakingFee() {
+      const val = BigNumber(this.amount).div(32);
+      return BigNumber(val).times(0.1).toFixed();
+    },
     networkImg() {
       return this.network.type.icon;
     },
     buttonText() {
-      return !this.hasEnoughBalance ? 'Not enough funds' : 'Next: Eth2 address';
+      return !this.hasEnoughBalance
+        ? 'Not enough funds'
+        : 'Next: Withdrawal Address';
     },
     /**
      * Current APR Formatted
@@ -220,30 +230,18 @@ export default {
      */
     depositForecast() {
       /**
-       * 3 Months Forecast
-       */
-      const threeMonthsEarning = this.getEarnings(3);
-      /**
-       * 1 year forecast
+       * 1 year Forecast
        */
       const oneYearEarnings = this.getEarnings(12);
       /**
-       * 2 year forecast
+       * 2 years forecast
        */
       const twoYearEarnings = this.getEarnings(24);
+      /**
+       * 3 years forecast
+       */
+      const threeYearEarnings = this.getEarnings(36);
       return [
-        {
-          duration: 'In 3 months',
-          balanceFiat: this.getFiatValue(
-            new BigNumber(this.amount)
-              .plus(threeMonthsEarning)
-              .times(this.fiatValue)
-          ),
-          balanceETH: formatFloatingPointValue(
-            new BigNumber(this.amount).plus(threeMonthsEarning)
-          ).value,
-          earningsETH: formatFloatingPointValue(threeMonthsEarning).value
-        },
         {
           duration: 'In 1 year',
           balanceFiat: this.getFiatValue(
@@ -267,6 +265,18 @@ export default {
             new BigNumber(this.amount).plus(twoYearEarnings)
           ).value,
           earningsETH: formatFloatingPointValue(twoYearEarnings).value
+        },
+        {
+          duration: 'In 3 years',
+          balanceFiat: this.getFiatValue(
+            new BigNumber(this.amount)
+              .plus(threeYearEarnings)
+              .times(this.fiatValue)
+          ),
+          balanceETH: formatFloatingPointValue(
+            new BigNumber(this.amount).plus(threeYearEarnings)
+          ).value,
+          earningsETH: formatFloatingPointValue(threeYearEarnings).value
         }
       ];
     }
@@ -280,12 +290,18 @@ export default {
         .dividedBy(100) // 12*100
         .times(months / 12)
         .toFixed();
-      return new BigNumber(this.amount).times(apr).toFixed();
+      const yieldFees = BigNumber(apr).times(0.13);
+      const stakeYields = new BigNumber(this.amount).times(
+        BigNumber(apr).minus(yieldFees)
+      );
+
+      return stakeYields.toFixed();
     },
     /**
      * Emits onContinue to go to next step
      */
     onContinue() {
+      this.trackDapp('StakedSetAmount');
       this.$emit('onContinue', { onStep: 1, amount: this.amount });
     },
     /**
@@ -310,5 +326,9 @@ export default {
       margin-bottom: 0;
     }
   }
+}
+// Set line height to align center with tooltip icon
+.staking-fee {
+  line-height: 20px;
 }
 </style>

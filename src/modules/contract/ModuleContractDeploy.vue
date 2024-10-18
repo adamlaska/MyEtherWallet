@@ -11,6 +11,7 @@
           v-model="byteCode"
           outlined
           label="Bytecode"
+          class="BytecodeInput"
           placeholder=" "
           :rules="[
             value => {
@@ -23,6 +24,7 @@
           outlined
           name="input-7-4"
           label="ABI/JSON Interface"
+          class="ABIInput"
           value=""
           placeholder=" "
           :rules="[
@@ -34,6 +36,7 @@
         <mew-input
           v-model="contractName"
           label="Contract name"
+          class="ContractName"
           placeholder=" "
         />
         <div v-show="constructorInputs.length">
@@ -82,22 +85,20 @@
             class="non-bool-input"
           />
         </div>
-        <div class="text-center mt-3">
+        <div class="text-right">
           <mew-button
-            title="Sign Transaction"
-            :has-full-width="false"
-            btn-size="xlarge"
-            :disabled="!canDeploy"
-            @click.native="deploy"
-          />
-        </div>
-        <div class="text-center mt-4">
-          <mew-button
+            btn-style="light"
             title="Clear all"
             :has-full-width="false"
-            btn-size="small"
-            btn-style="transparent"
+            class="mr-4"
             @click.native="resetDefaults()"
+          />
+          <mew-button
+            title="Deploy Contract"
+            class="SignTransactionButton"
+            :has-full-width="false"
+            :disabled="!canDeploy"
+            @click.native="deploy"
           />
         </div>
       </div>
@@ -108,6 +109,8 @@
 <script>
 import Vue from 'vue';
 import { mapState, mapActions, mapGetters } from 'vuex';
+import { toWei, toBN, toHex } from 'web3-utils';
+
 import sanitizeHex from '@/core/helpers/sanitizeHex';
 import validateHexString from '@/core/helpers/validateHexString';
 import {
@@ -117,10 +120,12 @@ import {
   isContractArgValid
 } from './handlers/common';
 import { stringToArray } from '@/core/helpers/common';
-import { toWei, toBN, toHex } from 'web3-utils';
+import handlerAnalyticsMixin from '../analytics-opt-in/handlers/handlerAnalytics.mixin';
+import { CONTRACT } from '../analytics-opt-in/handlers/configs/events';
 
 export default {
   name: 'ModuleContractDeploy',
+  mixins: [handlerAnalyticsMixin],
   data() {
     return {
       contractName: '',
@@ -132,7 +137,7 @@ export default {
     };
   },
   computed: {
-    ...mapState('wallet', ['address', 'web3']),
+    ...mapState('wallet', ['address', 'web3', 'instance']),
     ...mapState('global', ['currentNetwork']),
     ...mapGetters('global', ['gasPrice']),
     canDeploy() {
@@ -220,6 +225,7 @@ export default {
           params.push(stringToArray(_input.value));
         else params.push(_input.value);
       }
+      this.trackContract(CONTRACT.DEPLOY_CONTRACT);
       contract
         .deploy({
           data: this.byteCodeHex,
@@ -243,7 +249,12 @@ export default {
           if (details.name === '') {
             details.name = result.contractAddress;
           }
+          this.trackContract(CONTRACT.DEPLOY_CONTRACT_SUCCESS);
           this.addLocalContract(details);
+        })
+        .on('error', err => {
+          this.trackContract(CONTRACT.DEPLOY_CONTRACT_FAIL);
+          this.instance.errorHandler(err);
         });
     },
     valueInput(idx, value) {

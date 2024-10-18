@@ -1,8 +1,8 @@
-// package-test.js: check to make sure that all dependcies are sufficiently up
+// package-test.js: check to make sure that all dependencies are sufficiently up
 // to date. If dependencies are too outdated, exit with an error, failing `npm
 // run update:packages` and thus eventually the entire build.
 
-const package = require('./package.json');
+const parsedPackage = require('./package.json');
 const packageJson = require('package-json');
 const SAFE_TIME = 1000 * 1 * 60 * 60 * 24 * 7; //7days
 // webpack has a major update
@@ -48,36 +48,67 @@ const EXCEPTIONS = [
   'vue-i18n',
   'vue',
   '@vue/cli-plugin-e2e-nightwatch',
-  'geckodriver',
-  // breaking
-  '@shapeshiftoss/hdwallet-core',
-  '@shapeshiftoss/hdwallet-keepkey-webusb',
+  '@kleros/address-tags-sdk',
   'package-json',
   'codecov',
   'node-polyfill-webpack-plugin',
-  // check if fixable after hotfix
-  '@ensdomains/ensjs',
-  '@ensdomains/ens-contracts',
-  'protobufjs',
-  '@formatjs/intl-numberformat',
-  'babel-jest',
-  'qrcode',
-  'vue-template-compiler',
-  '@ledgerhq/hw-transport-web-ble',
-  '@ledgerhq/hw-app-eth',
-  '@ledgerhq/hw-transport-webusb',
   '@lokalise/node-api',
   '@unstoppabledomains/resolution',
   '@walletconnect/client',
   '@walletconnect/qrcode-modal',
-  'chromedriver'
+  'chromedriver',
+  '@ethereumjs/common',
+  '@ethereumjs/tx',
+  'graphql',
+  'vue-lazyload',
+  '@ensdomains/ensjs',
+  'vue-template-compiler',
+  '@aave/contract-helpers',
+  '@aave/math-utils',
+  'node-sass',
+  '@ledgerhq/hw-transport-web-ble',
+  '@ledgerhq/hw-transport-webusb',
+  '@ledgerhq/hw-app-eth',
+  'uuid',
+  'web3-eth-contract',
+  'is-ipfs',
+  'axios',
+  'prettier', // creates more warnings
+  '@ledgerhq/live-common', // issue with imports
+  'bip39', // breaks
+  'ethers', // major update
+  'patch-package', // major update
+  'highcharts', // major update
+  'highcharts-vue', // major update for vue 3
+  'geckodriver',
+  'eslint-plugin-prettier', // breaks
+  'ethereum-block-by-date',
+  '@mathieustan/vue-intercom', // major version
+  'vue-chartjs',
+  'chart.js',
+  'vue-tippy',
+  'less-loader', // doesn't support webpack 4
+  'eslint-plugin-security', // part of major release for eslint
+  '@commitlint/config-conventional',
+  'commitlint',
+  'minizlib',
+  'remark-preset-lint-recommended', // breaks
+  '@sentry/browser', // major update
+  '@sentry/vue', // major update
+  'qrcode-with-logos', // fix after release
+  '@ensdomains/ens-contracts',
+  '@shapeshiftoss/hdwallet-core',
+  '@shapeshiftoss/hdwallet-keepkey-webusb',
+  '@trezor/connect-web',
+  '@walletconnect/modal',
+  '@walletconnect/ethereum-provider'
 ];
 const CUSTOM_DIST = {
   ['babel-core']: 'bridge'
 };
 const ALL_PACKAGES = Object.assign(
-  package.dependencies,
-  package.devDependencies
+  parsedPackage.dependencies,
+  parsedPackage.devDependencies
 );
 const names = Object.keys(ALL_PACKAGES);
 let updatesFound = false;
@@ -119,23 +150,18 @@ const looper = () => {
         const isBehind =
           new Date(latestVersionTime).getTime() <
           new Date().getTime() - SAFE_TIME;
-        const isMewComponentBeta =
-          _name === '@myetherwallet/mew-components' &&
-          latestVersion.includes('-beta');
         if (isBehind) {
-          if (!isMewComponentBeta) {
-            console.error(
-              'ERROR: Update ' +
-                _name +
-                ' from ' +
-                ALL_PACKAGES[_name] +
-                ' to ' +
-                latestVersion +
-                '. Released:',
-              latestVersionTime
-            );
-            updatesFound = true;
-          }
+          console.error(
+            'ERROR: Update ' +
+              _name +
+              ' from ' +
+              ALL_PACKAGES[_name] +
+              ' to ' +
+              latestVersion +
+              '. Released:',
+            latestVersionTime
+          );
+          updatesFound = true;
         }
       }
     })

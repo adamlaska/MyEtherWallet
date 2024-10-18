@@ -27,7 +27,7 @@
           class="mt-3"
           :name="name"
           :duration="duration"
-          :register="register"
+          :register="registerClick"
           :not-enough-funds="notEnoughFunds"
           :no-funds-for-reg-fees="noFundsForRegFees"
           :commit-fee-in-eth="commitFeeInEth"
@@ -42,20 +42,25 @@
           :loading-commit="loadingCommit"
           :loading-reg="loadingReg"
       /></template>
-      <template #stepperContent3><complete v-if="onStep === 3" /></template>
+      <template #stepperContent3
+        ><complete-registration v-if="onStep === 3" :close="close"
+      /></template>
     </mew-stepper>
   </mew-overlay>
 </template>
 
 <script>
-import Request from '../components/register/RegisterRequest';
-import Register from '../components/register/Register';
-import { ROUTES_WALLET } from '@/core/configs/configRoutes';
 import BigNumber from 'bignumber.js';
 import { mapGetters, mapState } from 'vuex';
 
+import { ROUTES_WALLET } from '@/core/configs/configRoutes';
 export default {
-  components: { Request, Register },
+  components: {
+    Request: () => import('../components/register/RegisterRequest'),
+    Register: () => import('../components/register/Register'),
+    CompleteRegistration: () =>
+      import('../components/register/CompleteRegistration')
+  },
   props: {
     getRentPrice: {
       default: function () {
@@ -198,6 +203,11 @@ export default {
       this.generateKeyPhrase();
       this.$emit('getCommitFeeOnly');
       this.onStep += 1;
+    },
+    registerClick(duration) {
+      this.register(duration).on('receipt', () => {
+        this.onStep += 1;
+      });
     }
   }
 };

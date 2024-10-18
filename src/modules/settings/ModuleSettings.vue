@@ -10,42 +10,38 @@
     :back="editMode || addMode ? back : null"
     content-size="xlarge"
     :close="close"
+    class="py-10"
   >
     <mew-expand-panel
       v-if="!editMode && !addMode"
       :panel-items="panelItems"
       :idx-to-expand="idxToExpand"
+      class="mt-6"
     >
-      <template #panelBody1>
+      <template v-if="!hasGasPriceOption" #panelBody1>
         <div class="px-5">
           <settings-gas-price
             :buttons="gasButtons"
             :selected="gasPriceType"
             :set-selected="setSelected"
-            :total-gas-limit="gasPrice"
             :global="true"
             :from-settings="true"
           />
         </div>
       </template>
-      <template #panelBody2>
+      <template #[importPanel]>
         <settings-import-config :import-config="settingsHandler" />
       </template>
-      <template #panelBody3>
+      <template #[exportPanel]>
         <settings-export-config :export-config="exportStore" />
       </template>
-      <template #panelBody4>
+      <template #[addressBookPanel]>
         <div class="pa-6">
           <div class="mb-4">
             {{ $t('interface.address-book.add-up-to') }}
           </div>
-          <mew-table
-            :table-headers="tableHeaders"
-            :table-data="tableData"
-            has-color
-            :success-toast="$t('common.copied')"
-            @onClick="onEdit"
-          />
+
+          <settings-address-table :table-data="tableData" @onClick="onEdit" />
 
           <div class="d-flex justify-center mt-5">
             <mew-button
@@ -57,7 +53,7 @@
           </div>
         </div>
       </template>
-      <template #panelBody5>
+      <template #[localPanel]>
         <settings-locale-config />
       </template>
       <!-- <template #panelBody5>
@@ -65,12 +61,30 @@
       </template> -->
     </mew-expand-panel>
     <!--
-  =====================================================================================
-    Add / Edit Address Book overlay
-  =====================================================================================
-  -->
+    =====================================================================================
+      Consent to Data Sharing slider
+    =====================================================================================
+    -->
+    <div v-if="online && !addMode && !editMode" class="mt-3 px-8">
+      <div class="matomo-tracking-switch">
+        <v-switch
+          :label="`Data tracking ${consentToTrack ? 'On' : 'Off'}`"
+          :input-value="consentToTrack"
+          inset
+          color="greenPrimary"
+          off-icon="mdi-alert-circle"
+          @change="setConsent"
+        />
+      </div>
+    </div>
+    <!--
+    =====================================================================================
+      Add / Edit Address Book overlay
+    =====================================================================================
+    -->
     <address-book-add-edit
       v-if="addMode || editMode"
+      class="mt-4 mt-lg-0"
       :item="itemToEdit"
       :mode="onMode"
       @back="back"
@@ -79,27 +93,25 @@
 </template>
 
 <script>
-import SettingsImportConfig from './components/SettingsImportConfig';
-import SettingsExportConfig from './components/SettingsExportConfig';
-import SettingsGasPrice from './components/SettingsGasPrice';
-import SettingsLocaleConfig from './components/SettingsLocaleConfig.vue';
-import AddressBookAddEdit from '@/modules/address-book/components/AddressBookAddEdit';
-import handlerSettings from './handler/handlerSettings';
-import { mapState } from 'vuex';
-import gasPriceMixin from './handler/gasPriceMixin';
+import { mapState, mapGetters } from 'vuex';
 import { ROUTES_HOME, ROUTES_WALLET } from '@/core/configs/configRoutes';
+import handlerSettings from './handler/handlerSettings';
+import gasPriceMixin from './handler/gasPriceMixin';
+import handlerAnalytics from '@/modules/analytics-opt-in/handlers/handlerAnalytics.mixin';
 const modes = ['add', 'edit'];
 
 export default {
   name: 'ModuleSettings',
   components: {
-    SettingsImportConfig,
-    SettingsExportConfig,
-    SettingsGasPrice,
-    AddressBookAddEdit,
-    SettingsLocaleConfig
+    SettingsAddressTable: () => import('./components/SettingsAddressTable'),
+    SettingsImportConfig: () => import('./components/SettingsImportConfig'),
+    SettingsExportConfig: () => import('./components/SettingsExportConfig'),
+    SettingsGasPrice: () => import('./components/SettingsGasPrice'),
+    AddressBookAddEdit: () =>
+      import('@/modules/address-book/components/AddressBookAddEdit'),
+    SettingsLocaleConfig: () => import('./components/SettingsLocaleConfig.vue')
   },
-  mixins: [gasPriceMixin],
+  mixins: [gasPriceMixin, handlerAnalytics],
   beforeRouteLeave(to, from, next) {
     if (to.name == ROUTES_HOME.ACCESS_WALLET.NAME) {
       next({ name: ROUTES_WALLET.DASHBOARD.NAME });
@@ -117,48 +129,34 @@ export default {
       editMode: false,
       addMode: false,
       itemToEdit: {},
-      tableHeaders: [
-        {
-          text: '#',
-          value: 'number',
-          sortable: false,
-          filterable: false,
-          width: '5%'
-        },
-        {
-          text: 'Address',
-          value: 'address',
-          sortable: false,
-          filterable: false,
-          width: '50%'
-        },
-        {
-          text: 'Nickname',
-          value: 'nickname',
-          sortable: false,
-          filterable: false,
-          containsLink: true,
-          width: '20%'
-        },
-        {
-          text: '',
-          value: 'callToAction',
-          sortable: false,
-          filterable: false,
-          width: '20%'
-        }
-      ],
       tableData: []
     };
   },
   computed: {
     ...mapState('addressBook', ['addressBookStore']),
+    ...mapState('global', ['online']),
+    ...mapState('popups', ['consentToTrack']),
+    ...mapGetters('wallet', ['hasGasPriceOption']),
+    importPanel() {
+      return `panelBody${!this.hasGasPriceOption ? 2 : 1}`;
+    },
+    exportPanel() {
+      return `panelBody${!this.hasGasPriceOption ? 3 : 2}`;
+    },
+    addressBookPanel() {
+      return `panelBody${!this.hasGasPriceOption ? 4 : 3}`;
+    },
+    localPanel() {
+      return `panelBody${!this.hasGasPriceOption ? 5 : 4}`;
+    },
     panelItems() {
-      return [
+      const txPriority = [
         {
-          name: 'Default transaction priority',
+          name: 'Transaction priority',
           toggleTitle: this.setPriority(this.gasPriceType)
-        },
+        }
+      ];
+      const panels = [
         {
           name: 'Import configurations'
         },
@@ -172,6 +170,7 @@ export default {
           name: 'Currency settings'
         }
       ];
+      return this.hasGasPriceOption ? panels : txPriority.concat(panels);
     },
     onMode() {
       return this.addMode ? modes[0] : modes[1];
@@ -254,3 +253,11 @@ export default {
   }
 };
 </script>
+
+<style lang="scss">
+.matomo-tracking-switch {
+  .v-label {
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+</style>

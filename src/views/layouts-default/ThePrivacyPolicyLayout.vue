@@ -1,5 +1,5 @@
 <template>
-  <div class="privacy-policy py-12">
+  <div class="privacy-policy py-12 pt-16 mt-13">
     <v-container>
       <div class="wrap">
         <div class="page-container">
@@ -75,6 +75,7 @@ export default {
         'sharing-personal-info-paragraph-2',
         'sharing-personal-info-subtitle',
         'sharing-personal-info-paragraph-3',
+        'sharing-personal-info-paragraph-4',
         'links-to-other-sites',
         'links-to-other-sites-paragraph',
         'mew-commitment',

@@ -12,7 +12,7 @@
       =====================================================================================
     -->
     <confirmation-summary-block
-      v-if="summaryItems.length == 2"
+      v-if="summaryItems.length <= 2"
       :items="summaryItems"
     >
       <template #rightColItem0>
@@ -36,8 +36,16 @@
     >
       <template #rightColItem0>
         <div class="mew-body d-flex justify-end">
-          <mew-blockie :address="toAddress" width="20px" height="20px" />
-          <span class="searchText--text ml-2">{{ toAddress }}</span>
+          <mew-tooltip hide-icon :text="toAddress">
+            <template #activatorSlot="{ on, attrs }">
+              <div class="d-flex">
+                <mew-blockie :address="toAddress" width="20px" height="20px" />
+                <span v-bind="attrs" class="searchText--text ml-2" v-on="on">{{
+                  toAddressShortened
+                }}</span>
+              </div>
+            </template>
+          </mew-tooltip>
         </div>
       </template>
       <template #rightColItem1>
@@ -50,7 +58,7 @@
       <template #rightColItem2>
         <div class="mew-body">
           {{ convertedFees.value }}
-          <span class="searchText--text">{{ convertedFees.unit }}</span>
+          <span class="searchText--text">{{ toCurrency }}</span>
           ~{{ txFeeUSD }}
         </div>
       </template>
@@ -59,19 +67,19 @@
 </template>
 
 <script>
+import BigNumber from 'bignumber.js';
+import { mapGetters } from 'vuex';
+import { fromWei } from 'web3-utils';
+
 import {
   formatFloatingPointValue,
   formatGasValue
 } from '@/core/helpers/numberFormatHelper';
-import ConfirmationSummaryBlock from './ConfirmationSummaryBlock';
-import ConfirmationValuesContainer from './ConfirmationValuesContainer';
-import BigNumber from 'bignumber.js';
-import { mapGetters } from 'vuex';
-import { fromWei } from 'web3-utils';
+
 export default {
   components: {
-    ConfirmationSummaryBlock,
-    ConfirmationValuesContainer
+    ConfirmationSummaryBlock: () => import('./ConfirmationSummaryBlock'),
+    ConfirmationValuesContainer: () => import('./ConfirmationValuesContainer')
   },
   props: {
     provider: {
@@ -138,6 +146,7 @@ export default {
   computed: {
     ...mapGetters('external', ['fiatValue']),
     ...mapGetters('global', ['network', 'getFiatValue']),
+    ...mapGetters('wallet', ['hasGasPriceOption']),
     convertedFees() {
       return formatGasValue(this.txFee);
     },
@@ -146,7 +155,10 @@ export default {
       return this.getFiatValue(feeETH.times(this.fiatValue));
     },
     summaryItems() {
-      const newArr = ['Exchange rate', 'Transaction fee'];
+      const newArr = [
+        'Exchange rate',
+        this.hasGasPriceOption ? 'Estimated fee' : 'Transaction fee'
+      ];
       if (this.isToNonEth) {
         newArr.unshift(`Receive ${this.toCurrency} to`);
       }
@@ -182,6 +194,17 @@ export default {
           usd: this.getFiatValue(this.toUsd)
         }
       ];
+    },
+    toAddressStart() {
+      return this.toAddress.substring(0, 20);
+    },
+    toAddressEnd() {
+      return this.toAddress.substring(this.toAddress.length - 4);
+    },
+    toAddressShortened() {
+      return this.toAddress.length > 30
+        ? `${this.toAddressStart}... ${this.toAddressEnd}`
+        : this.toAddress;
     }
   }
 };

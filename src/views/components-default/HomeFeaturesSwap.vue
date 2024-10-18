@@ -1,5 +1,5 @@
 <template>
-  <mew6-white-sheet
+  <white-sheet
     class="mew-component--features-swap pa-6 pa-md-10"
     max-width="700px"
   >
@@ -58,12 +58,10 @@
         title="Swap"
         btn-size="xlarge"
         class="mx-auto mt-12 d-block"
-        @click.native="
-          $router.push({ name: ROUTES_HOME.ACCESS_WALLET.NAME, params: {} })
-        "
+        @click.native="() => navigateToSwap()"
       />
     </div>
-  </mew6-white-sheet>
+  </white-sheet>
 </template>
 
 <script>
@@ -71,9 +69,11 @@ import handlerSwap from '@/modules/swap/handlers/handlerSwap';
 import { mapState, mapGetters } from 'vuex';
 import { formatFloatingPointValue } from '@/core/helpers/numberFormatHelper';
 import { Toast, ERROR } from '@/modules/toast/handler/handlerToast';
-import { ROUTES_HOME } from '@/core/configs/configRoutes';
+import { ROUTES_WALLET } from '@/core/configs/configRoutes';
 import { isEmpty } from 'lodash';
-
+import handlerAnalytics from '@/modules/analytics-opt-in/handlers/handlerAnalytics.mixin';
+import { LANDING_PAGE } from '@/modules/analytics-opt-in/handlers/configs/events.js';
+const fromAmount = '1000000000000000000';
 const STATIC_PAIRS = [
   {
     toT: {
@@ -85,7 +85,7 @@ const STATIC_PAIRS = [
       contract: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
       decimals: 18
     },
-    fromAmount: '100000000000000000'
+    fromAmount: fromAmount
   },
   {
     fromT: {
@@ -98,7 +98,7 @@ const STATIC_PAIRS = [
       contract: '0xdac17f958d2ee523a2206206994597c13d831ec7',
       decimals: 6
     },
-    fromAmount: '100000000000000000'
+    fromAmount: fromAmount
   },
   {
     fromT: {
@@ -111,7 +111,7 @@ const STATIC_PAIRS = [
       contract: '0xdd974d5c2e2928dea5f71b9825b8b646686bd200',
       toT: 18
     },
-    fromAmount: '100000000000000000'
+    fromAmount: fromAmount
   },
   {
     fromT: {
@@ -124,7 +124,7 @@ const STATIC_PAIRS = [
       contract: '0x6b175474e89094c44da98b954eedeac495271d0f',
       decimals: 18
     },
-    fromAmount: '100000000000000000'
+    fromAmount: fromAmount
   },
   {
     fromT: {
@@ -137,7 +137,7 @@ const STATIC_PAIRS = [
       contract: '0x514910771af9ca656af840dff83e8264ecf986ca',
       decimals: 18
     },
-    fromAmount: '100000000000000000'
+    fromAmount: fromAmount
   },
   {
     fromT: {
@@ -150,19 +150,18 @@ const STATIC_PAIRS = [
       contract: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
       decimals: 6
     },
-    fromAmount: '100000000000000000'
+    fromAmount: fromAmount
   }
 ];
 export default {
   name: 'HomeFeaturesSwap',
-  components: {},
+  mixins: [handlerAnalytics],
   data() {
     return {
       swapHandler: null,
       swapData: null,
       loading: true,
-      error: false,
-      ROUTES_HOME: ROUTES_HOME
+      error: false
     };
   },
   computed: {
@@ -212,11 +211,12 @@ export default {
       this.navigateToSwap(obj);
     },
     navigateToSwap(query) {
-      const obj = { name: 'Swap' };
+      const obj = { name: ROUTES_WALLET.SWAP.NAME };
       if (query) {
         obj['query'] = query;
       }
-      if (this.$route.name === 'Swap') {
+      this.trackLandingPageAmplitude(LANDING_PAGE.SWAP_CLICKED);
+      if (this.$route.name === ROUTES_WALLET.SWAP.NAME) {
         // this will allow vue to update query param
         // within the swap page when user clicks on the pairs again
         this.$router.replace(obj);

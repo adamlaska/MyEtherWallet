@@ -1,5 +1,5 @@
 <template>
-  <mew6-white-sheet
+  <white-sheet
     class="mew-component--features-dapps px-6 pb-6 pt-5 pt-dm-4 pa-md-10"
     max-width="700px"
   >
@@ -18,7 +18,7 @@
           <div>
             <div
               v-if="!d.isAccessible"
-              class="badge mew-label disabledPrimary--text d-block text--center mt-3"
+              class="badge mew-label disabledPrimary--text d-block text--center mt-3 pb-5 pl-2"
             >
               Coming soon
             </div>
@@ -32,24 +32,12 @@
         </div>
       </v-col>
     </v-row>
-    <div class="message d-flex align-center justify-center px-3 py-5 mt-7">
-      <div class="message--text textMedium--text text-center">
-        {{ $t('home.features.dapps.text') }}
-        <a
-          href="https://v5.myetherwallet.com"
-          target="_blank"
-          class="greenPrimary--text"
-          >{{ $t('home.features.dapps.link-text') }}</a
-        >
-      </div>
-    </div>
-  </mew6-white-sheet>
+  </white-sheet>
 </template>
 
 <script>
 export default {
   name: 'HomeFeaturesDapps',
-  components: {},
   data: vm => ({
     dapps: [
       {
@@ -76,10 +64,10 @@ export default {
         label: vm.$t('home.features.dapps.safesend'),
         icon: require('@/assets/images/icons/icon-dapp-lock.png')
       },
-
       {
         label: vm.$t('home.features.dapps.aave'),
-        icon: require('@/assets/images/icons/icon-dapp-aave.png')
+        icon: require('@/assets/images/icons/icon-dapp-aave.png'),
+        isAccessible: true
       },
       {
         label: vm.$t('home.features.dapps.golem-migrator'),
@@ -114,7 +102,7 @@ $greyBackground: var(--v-greyLight-base);
   padding: 3px;
   border-radius: 4px;
   height: 20px;
-  width: 83px;
+  width: 86px;
 }
 .message {
   background-color: $greyBackground;

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <the-layout-header :title="$t('team.header')" />
+    <the-layout-header title="Join us" class="pt-16" />
     <div class="py-7" />
     <v-container>
       <v-sheet max-width="700px" class="mx-auto">
@@ -18,7 +18,7 @@
           lg="4"
           class="px-0 text-center"
         >
-          <v-img :src="t.img" />
+          <v-img :src="t.img" style="background-color: #79e2e1" />
           <div class="mt-6 title">{{ t.name }}</div>
           <div class="grey--text text--lighten-1 mt-1">{{ t.title }}</div>
           <div class="py-6" />
@@ -29,13 +29,13 @@
 </template>
 
 <script>
-import TheLayoutHeader from '../components-default/TheLayoutHeader';
-import AppBlockTitle from '@/core/components/AppBlockTitle';
 import axios from 'axios';
 
 export default {
   name: 'TheTeamLayout',
-  components: { TheLayoutHeader, AppBlockTitle },
+  components: {
+    TheLayoutHeader: () => import('../components-default/TheLayoutHeader')
+  },
   data: vm => ({
     titleData: {
       textProps: '',

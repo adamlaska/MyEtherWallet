@@ -2,15 +2,12 @@
  * The Wallet View Apollo Mixin
  */
 import { EventBus } from '../plugins/eventBus';
-import { MOONPAY_EVENT } from '@/modules/moon-pay/helpers';
+import { BUYSELL_EVENT } from '@/modules/buy-sell/helpers';
 export default {
   name: 'BuyMoreMixin',
-  data() {
-    return {};
-  },
   methods: {
-    openMoonpay() {
-      EventBus.$emit(MOONPAY_EVENT);
+    openBuySell(module) {
+      EventBus.$emit(BUYSELL_EVENT, [module, this.$route.path]);
     }
   }
 };

@@ -1,5 +1,5 @@
 <template>
-  <div class="component-container">
+  <div class="component-container company-our-story">
     <div class="py-10" />
     <v-container class="pb-0">
       <v-sheet max-width="600px" color="transparent" class="mx-auto">
@@ -17,10 +17,7 @@
 </template>
 
 <script>
-import AppBlockTitle from '@/core/components/AppBlockTitle';
-
 export default {
-  components: { AppBlockTitle },
   data: vm => ({
     titleData: {
       textProps: '',

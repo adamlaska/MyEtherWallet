@@ -4,7 +4,11 @@
     Nft Manager Details Component
   =====================================================================================
   -->
-  <v-card flat color="greyLight" class="rounded-lg pa-2 d-flex align-center">
+  <v-card
+    flat
+    color="buttonGrayLight"
+    class="rounded-lg pa-2 d-flex align-center"
+  >
     <!--
   =====================================================================================
     Loading Details
@@ -12,7 +16,7 @@
   -->
     <v-skeleton-loader
       v-if="loading"
-      class="nft-manager-details-loader greyLight py-2"
+      class="nft-manager-details-loader buttonGrayLight py-2"
       width="100%"
       height="100%"
       type="list-item-avatar"
@@ -23,18 +27,15 @@
   =====================================================================================
   -->
     <div v-if="!loading" class="d-flex align-center full-width">
-      <img
-        height="100"
-        :src="token.image ? token.image : getImageUrl(token)"
-        alt="nft token"
-        @error="onImgErr"
-      />
+      <img width="100" :src="token.image" alt="nft token" @error="onImgErr" />
       <div
-        class="d-flex align-center flex-column flex-md-row flex-lg-row flex-xl-row justify-space-between pa-3 full-width"
+        class="d-flex align-center flex-column flex-md-row flex-lg-column flex-xl-row justify-space-between pa-3 full-width"
       >
-        <span :class="$vuetify.breakpoint.smAndDown ? 'mb-1' : ''"
-          >#{{ token.name }}</span
-        >
+        <div class="nft-name pr-2">
+          <span v-if="token" class="pb-1 pb-md-0 pb-lg-2 pb-xl-0"
+            >#{{ token.name || token.token_id }}</span
+          >
+        </div>
         <mew-button
           :has-full-width="false"
           btn-style="outline"
@@ -61,12 +62,6 @@ export default {
       },
       type: Object
     },
-    getImageUrl: {
-      default: () => {
-        return;
-      },
-      type: Function
-    },
     onClick: {
       default: () => {
         return;
@@ -86,6 +81,14 @@ export default {
   }
 };
 </script>
+<style lang="scss" scoped>
+.nft-name {
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>
 <style lang="scss">
 .nft-manager-details-loader {
   .v-skeleton-loader__list-item-avatar {

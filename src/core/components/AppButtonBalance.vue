@@ -13,7 +13,7 @@
     </div>
 
     <div v-else class="d-flex align-center justify-end">
-      <div v-if="!text" class="greenPrimary--text mew-body">
+      <div v-if="!text" class="greenPrimary--text mew-body BalanceLabel">
         Balance: {{ balanceFormatted.value }}
       </div>
       <div else class="primary--text mew-body">
@@ -22,6 +22,7 @@
       <mew-tooltip
         v-if="balanceFormatted.tooltipText"
         class="pl-1"
+        style="height: 21px"
         :text="balanceFormatted.tooltipText"
       />
     </div>
@@ -31,7 +32,6 @@
 <script>
 import { formatFloatingPointValue } from '@/core/helpers/numberFormatHelper';
 export default {
-  components: {},
   props: {
     loading: {
       type: Boolean,
@@ -45,7 +45,7 @@ export default {
       type: String,
       default: 'Loading balance'
     },
-    /** Set this proerty to wei if you are dispalying ETH balance vs erc20 tokens*/
+    /** Set this property to wei if you are displaying ETH balance vs erc20 tokens*/
     balance: {
       type: String,
       default: ''

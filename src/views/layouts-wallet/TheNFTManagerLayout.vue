@@ -7,13 +7,11 @@
 </template>
 
 <script>
-import TheWrapperWallet from '@/core/components/TheWrapperWallet';
-import ModuleNftManager from '@/modules/nft-manager/ModuleNftManager';
-
 export default {
   components: {
-    TheWrapperWallet,
-    ModuleNftManager
+    TheWrapperWallet: () =>
+      import('@/views/components-wallet/TheWrapperWallet'),
+    ModuleNftManager: () => import('@/modules/nft-manager/ModuleNftManager')
   }
 };
 </script>

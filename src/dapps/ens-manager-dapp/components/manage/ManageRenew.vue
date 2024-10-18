@@ -17,8 +17,17 @@
           v-if="noFundsForRenewalFees"
           class="balance-error d-flex mt-2 mb-3 justify-center align-center"
         >
-          Not enough balance:
-          <a target="_blank" class="link" @click="openMoonpay">
+          Not enough balance.
+          <a
+            v-show="network.type.canBuy"
+            target="_blank"
+            class="link"
+            @click="
+              () => {
+                openBuySell('ENSRenew');
+              }
+            "
+          >
             <u>Buy More Eth</u>
           </a>
         </span>
@@ -37,8 +46,9 @@
 </template>
 
 <script>
-import { formatFloatingPointValue } from '@/core/helpers/numberFormatHelper';
 import { mapGetters } from 'vuex';
+
+import { formatFloatingPointValue } from '@/core/helpers/numberFormatHelper';
 import buyMore from '@/core/mixins/buyMore.mixin.js';
 export default {
   mixins: [buyMore],
@@ -99,7 +109,7 @@ export default {
     this.getTotalRenewFeeOnly(1);
   },
   methods: {
-    ...mapGetters('global', ['getFiatValue']),
+    ...mapGetters('global', ['getFiatValue', 'network']),
     rentPrice() {
       return this.getRentPrice(this.duration).then(resp => {
         if (resp) {

@@ -1,35 +1,40 @@
 <template>
-  <the-wrapper-wallet :total-left-col-items="1" :total-right-col-items="2">
+  <the-wrapper-wallet
+    :total-left-col-items="1"
+    has-draggable
+    :total-right-col-items="totalRightColItems"
+  >
     <template #leftColItem1>
       <module-send />
     </template>
     <template #rightColItem1>
-      <module-tokens-value />
+      <module-tokens-value :draggable="hasHistory" />
     </template>
     <template v-if="hasHistory" #rightColItem2>
-      <module-transfer-history />
+      <module-transfer-history draggable />
     </template>
   </the-wrapper-wallet>
 </template>
 
 <script>
-import ModuleSend from '@/modules/send/ModuleSend';
-import TheWrapperWallet from '@/core/components/TheWrapperWallet';
-import ModuleTokensValue from '@/modules/balance/ModuleTokensValue';
-import ModuleTransferHistory from '@/modules/transfer-history/ModuleTransferHistory';
 import { mapGetters } from 'vuex';
 
 export default {
   components: {
-    ModuleSend,
-    TheWrapperWallet,
-    ModuleTokensValue,
-    ModuleTransferHistory
+    ModuleSend: () => import('@/modules/send/ModuleSend'),
+    TheWrapperWallet: () =>
+      import('@/views/components-wallet/TheWrapperWallet'),
+    ModuleTokensValue: () => import('@/modules/balance/ModuleTokensValue'),
+    ModuleTransferHistory: () =>
+      import('@/modules/transfer-history/ModuleTransferHistory')
   },
   computed: {
     ...mapGetters('notifications', ['txNotifications']),
     hasHistory() {
       return this.txNotifications && this.txNotifications.length > 0;
+    },
+    totalRightColItems() {
+      return this.hasHistory ? 2 : 1;
     }
   }
 };

@@ -1,13 +1,25 @@
 <template>
-  <div class="pt-8 pb-13 px-3 pa-sm-15">
+  <div class="dapps-stakewise-rewards pt-8 pb-13 px-3 pa-sm-15">
     <v-row>
+      <v-col cols="12">
+        <mew-warning-sheet
+          class="mb-5"
+          title="StakeWise V3 is now live on
+        mainnet"
+          description="Please note that Stakewise V2 deposits are now
+        disabled. You can redeem your sETH2 and rETH2 for ETH in the MEW Stakewise
+        dApp, and then re-stake by using the Stakewise web app."
+          :link-obj="linkObj"
+          :bottom="false"
+        />
+      </v-col>
       <v-col
         :order="$vuetify.breakpoint.smAndDown ? 'last' : ''"
         cols="12"
         md="8"
         :class="$vuetify.breakpoint.smAndDown ? 'my-10' : 'pr-7'"
       >
-        <mew-sheet class="pa-md-15">
+        <mew-sheet class="pa-15">
           <div class="mew-heading-2 textDark--text mb-8">Compound Rewards</div>
 
           <!-- ======================================================================================= -->
@@ -15,7 +27,7 @@
           <!-- ======================================================================================= -->
           <div ref="input" class="d-flex align-center text-center">
             <div
-              class="border-radius--8px backgroundGrey flex-grow-1 pa-5 d-flex flex-column align-center"
+              class="border-radius--8px bgWalletBlockDark flex-grow-1 pa-5 d-flex flex-column align-center"
               style="width: 30%"
             >
               <div
@@ -35,7 +47,7 @@
               <v-icon color="greenPrimary">mdi-arrow-right</v-icon>
             </div>
             <div
-              class="border-radius--8px backgroundGrey flex-grow-1 pa-5 d-flex flex-column align-center"
+              class="border-radius--8px bgWalletBlockDark flex-grow-1 pa-5 d-flex flex-column align-center"
               style="width: 30%"
             >
               <div
@@ -57,7 +69,10 @@
           <!-- Amount to stake -->
           <!-- ======================================================================================= -->
           <div class="position--relative mt-15">
-            <button-balance :loading="loadingBalance" :balance="rethBalance" />
+            <app-button-balance
+              :loading="loadingBalance"
+              :balance="rethBalance"
+            />
             <mew-input
               type="number"
               :max-btn-obj="maxBtnObj"
@@ -66,6 +81,7 @@
               :value="compoundAmount"
               placeholder="Enter amount"
               :error-messages="errorMessages"
+              :disabled="true"
               @input="setAmount"
             />
           </div>
@@ -143,7 +159,7 @@
             />
             <mew-button
               class="mt-8"
-              title="Compound Rewards"
+              title="Compound rewards"
               btn-size="xlarge"
               :loading="loading"
               :disabled="!isValid"
@@ -163,6 +179,7 @@
           @redeem-to-eth="redeemToEth"
         />
         <stakewise-rewards
+          v-if="isEthNetwork"
           :tx-fee="txFee"
           @set-max="setMax"
           @scroll="scroll"
@@ -174,20 +191,14 @@
 </template>
 
 <script>
-import StakewiseApr from '../components/StakewiseApr';
-import StakewiseStaking from '../components/StakewiseStaking';
-import StakewiseRewards from '../components/StakewiseRewards';
-import ButtonBalance from '@/core/components/AppButtonBalance';
-import Swapper from '@/modules/swap/handlers/handlerSwap';
-import stakeHandler from '../handlers/stakewiseStakeHandler';
 import BigNumber from 'bignumber.js';
-import { debounce } from 'lodash';
 import { mapGetters, mapState, mapActions } from 'vuex';
-import { find, clone, isEmpty } from 'lodash';
+import { find, clone, isEmpty, debounce } from 'lodash';
 import { fromWei } from 'web3-utils';
+
+import handlerAnalytics from '@/modules/analytics-opt-in/handlers/handlerAnalytics.mixin';
 import { EventBus } from '@/core/plugins/eventBus';
 import { formatFloatingPointValue } from '@/core/helpers/numberFormatHelper';
-import { ERROR, Toast } from '@/modules/toast/handler/handlerToast';
 import Notification, {
   NOTIFICATION_TYPES,
   NOTIFICATION_STATUS
@@ -201,16 +212,20 @@ import {
   RETH2_Token,
   ETH_Token
 } from '@/dapps/stakewise/handlers/configs.js';
+
+import { ERROR, Toast } from '@/modules/toast/handler/handlerToast';
+import Swapper from '@/modules/swap/handlers/handlerSwap';
+import stakeHandler from '../handlers/stakewiseStakeHandler';
 const MIN_GAS_LIMIT = 300000;
 
 export default {
   name: 'ModuleStakewiseRewards',
   components: {
-    StakewiseApr,
-    StakewiseStaking,
-    StakewiseRewards,
-    ButtonBalance
+    StakewiseApr: () => import('../components/StakewiseApr'),
+    StakewiseStaking: () => import('../components/StakewiseStaking'),
+    StakewiseRewards: () => import('../components/StakewiseRewards')
   },
+  mixins: [handlerAnalytics],
   data() {
     return {
       iconStakewise: require('@/dapps/stakewise/assets/icon-stakewise-red.svg'),
@@ -235,6 +250,10 @@ export default {
         validUntil: 0,
         selectedProvider: '',
         txFee: ''
+      },
+      linkObj: {
+        title: 'Stakewise web app.',
+        url: 'https://app.stakewise.io/'
       }
     };
   },
@@ -247,7 +266,7 @@ export default {
       'getFiatValue'
     ]),
     ...mapGetters('external', ['fiatValue']),
-    ...mapState('wallet', ['web3', 'address']),
+    ...mapState('wallet', ['web3', 'address', 'instance']),
     ...mapState('stakewise', ['rethBalance', 'sethBalance']),
     ...mapState('global', ['gasPriceType']),
     reth2Contract() {
@@ -319,6 +338,9 @@ export default {
       return BigNumber(this.compoundAmount).gt(this.rethBalance);
     },
     errorMessages() {
+      if (!this.isEthNetwork) {
+        return 'Compunding rewards are not supported on non ETH network!';
+      }
       if (BigNumber(this.compoundAmount).eq(0)) {
         return '';
       }
@@ -359,7 +381,7 @@ export default {
     maxBtnObj() {
       return {
         title: 'Max',
-        disabled: BigNumber(this.rethBalance).lte(0),
+        disabled: true,
         method: this.setMax
       };
     }
@@ -476,6 +498,7 @@ export default {
       }
     },
     async showConfirm() {
+      this.trackDapp('stakewiseRewardsShowConfirm');
       try {
         this.loading = true;
         await this.getTrade(this.hasReth, this.hasSeth, 'reth');
@@ -502,7 +525,7 @@ export default {
         this.executeTrade();
       } catch (err) {
         this.loading = false;
-        Toast(err.message, {}, ERROR);
+        this.instance.errorHandler(err.message, {}, ERROR);
       }
     },
     executeTrade() {
@@ -512,6 +535,7 @@ export default {
         this.swapper
           .executeTrade(this.currentTrade, this.confirmInfo)
           .then(res => {
+            this.trackDapp('stakewiseCompoundRewards');
             this.swapNotificationFormatter(res, currentTradeCopy);
           })
           .then(() => {
@@ -523,11 +547,11 @@ export default {
           })
           .catch(err => {
             this.loading = false;
-            Toast(err.message, {}, ERROR);
+            this.instance.errorHandler(err.message, {}, ERROR);
           });
       } catch (err) {
         this.loading = false;
-        Toast(err.message, {}, ERROR);
+        this.instance.errorHandler(err.message, {}, ERROR);
       }
     },
     swapNotificationFormatter(obj, currentTrade) {
@@ -570,6 +594,9 @@ export default {
           to: ETH_Token.contract,
           fromType: eth.symbol,
           toType: ETH_Token.symbol,
+          toTokenType: {
+            isEth: true
+          },
           fromImg: eth.img,
           toImg: ETH_Token.img,
           fromVal: balance,
@@ -588,7 +615,7 @@ export default {
         await this.executeTrade();
       } catch (err) {
         this.loading = false;
-        Toast(err.message, {}, ERROR);
+        this.instance.errorHandler(err.message, {}, ERROR);
       }
     },
     openSettings() {

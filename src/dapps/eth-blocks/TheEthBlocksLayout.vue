@@ -17,24 +17,25 @@
 </template>
 
 <script>
-import TheWrapperDapp from '@/core/components/TheWrapperDapp';
+import { mapActions, mapGetters, mapState } from 'vuex';
 import { ETH_BLOCKS_ROUTE } from './configsRoutes';
 import { SUPPORTED_NETWORKS } from './handlers/helpers/supportedNetworks';
-import { mapActions, mapGetters, mapState } from 'vuex';
 
 export default {
   name: 'TheEthBlocksLayout',
   components: {
-    TheWrapperDapp
+    TheWrapperDapp: () => import('@/dapps/TheWrapperDapp.vue')
   },
   data() {
     return {
       header: {
         title: 'ETH Blocks',
-        subtext: 'Mint generative art NFTs of Ethereum blocks. '
+        subtext: 'Mint generative art NFTs of Ethereum blocks. ',
+        dappLink:
+          'https://help.myetherwallet.com/en/articles/5708663-how-to-mint-eth-blocks'
       },
       activeTab: 0,
-      headerImg: require('@/assets/images/icons/icon-dapp-eth-blocks.svg'),
+      headerImg: require('@/assets/images/icons/dapps/icon-dapp-ethblocks.svg'),
       validNetworks: SUPPORTED_NETWORKS,
       checkPendingInterval: false
     };
@@ -53,7 +54,7 @@ export default {
       return this.getAllEthBlocksTxs.length > 0;
     },
     identifyNetwork() {
-      return this.isTestNetwork ? this.cart.RIN : this.cart.ETH;
+      return this.cart.ETH;
     },
     tabs() {
       return [
@@ -141,7 +142,7 @@ export default {
 
     /**
      * Checks web3 Transaction hash.
-     * If reciept is defined, removes transaction hash from
+     * If receipt is defined, removes transaction hash from
      * @param {string} txHash - transaction hash of the
      */
     checkTx(txHash) {

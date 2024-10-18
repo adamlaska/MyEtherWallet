@@ -27,9 +27,10 @@
 </template>
 
 <script>
-import mobileTable from '@/components/mobile-table/MobileTable';
 export default {
-  components: { mobileTable },
+  components: {
+    mobileTable: () => import('@/core/components/MobileTable')
+  },
   data: () => ({
     mobileTable: [
       { label: 'Price', value: '$8.34' },

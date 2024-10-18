@@ -52,7 +52,7 @@
             class="extension-btn"
             style="border-radius: 40px !important"
             color-theme="#7E44F2"
-            @click.native="openEnkrypt"
+            btn-link="https://www.enkrypt.com"
           >
             <img
               class="mr-3"
@@ -70,9 +70,9 @@
 </template>
 <script>
 import { mapActions, mapState } from 'vuex';
+import moment from 'moment';
 
 import enkryptMarketing from '@/core/mixins/enkryptMarketing.mixin';
-import moment from 'moment';
 export default {
   mixins: [enkryptMarketing],
   computed: {

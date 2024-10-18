@@ -10,19 +10,13 @@
         </v-col>
         <v-col cols="auto">
           <div class="d-flex align-center mr-3 mb-2">
-            <img
-              class="mr-2"
-              height="20"
-              src="@/assets/images/icons/icon-support.svg"
-            />
+            <v-icon color="textDark" class="mr-2" size="20px"
+              >mdi-face-agent</v-icon
+            >
             <div>support@myetherwallet.com</div>
           </div>
           <div class="d-flex align-center mr-3">
-            <img
-              class="mr-2"
-              height="20"
-              src="@/assets/images/icons/icon-support.svg"
-            />
+            <v-icon color="textDark" class="mr-2" size="20px">mdi-web</v-icon>
             <div>https://www.myetherwallet.com</div>
           </div>
         </v-col>
@@ -68,7 +62,7 @@
           </div>
         </v-col>
         <v-col cols="auto">
-          <qr-code :data="address" :height="140" :width="140" />
+          <app-qr-code :data="address" :height="140" :width="140" />
         </v-col>
       </v-row>
 
@@ -91,7 +85,12 @@
           </div>
         </v-col>
         <v-col cols="auto">
-          <qr-code :data="key" :height="140" :width="140" :type-number="10" />
+          <app-qr-code
+            :data="key"
+            :height="140"
+            :width="140"
+            :type-number="10"
+          />
         </v-col>
       </v-row>
     </v-container>
@@ -100,7 +99,7 @@
 
     <div class="text-center py-4">
       <img
-        src="@/assets/images/backgrounds/bg-spaceman.png"
+        src="@/assets/images/backgrounds/bg-spaceman.jpg"
         alt="Spaceman"
         width="200"
       />
@@ -114,9 +113,6 @@ import { toChecksumAddress } from '@/core/helpers/addressUtils';
 
 export default {
   name: 'BalanceAddressPaperWallet',
-  data() {
-    return {};
-  },
   computed: {
     ...mapState('wallet', ['address', 'instance', 'isHardware']),
     key() {

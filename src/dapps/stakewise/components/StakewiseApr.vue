@@ -3,7 +3,7 @@
   <!-- Side APR -->
   <!-- ======================================================================================= -->
   <div
-    class="mew-component--module-side-apr backgroundGrey pa-5 border-radius--10px"
+    class="mew-component--module-side-apr bgWalletBlockDark pa-5 border-radius--10px"
   >
     <div class="d-flex align-center justify-space-between mb-1">
       <div class="textLight--text text-uppercase mew-label font-weight-medium">
@@ -21,8 +21,9 @@
 </template>
 
 <script>
-import { formatFloatingPointValue } from '@/core/helpers/numberFormatHelper';
 import { mapGetters, mapState } from 'vuex';
+
+import { formatFloatingPointValue } from '@/core/helpers/numberFormatHelper';
 export default {
   name: 'StakewiseApr',
   computed: {

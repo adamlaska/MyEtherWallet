@@ -18,18 +18,19 @@
             class="mew-tabs-container d-flex align-center flex-column"
             :items="mewTabs"
             is-block
+            @onTab="trackClick"
           >
             <template #tabContent1>
-              <home-features-send class="mt-16 mb-10" />
+              <home-features-tokens class="mt-16 mb-10" />
             </template>
             <template #tabContent2>
-              <home-features-swap class="mt-16 mb-10" />
+              <home-features-send class="mt-16 mb-10" />
             </template>
             <template #tabContent3>
-              <home-features-dapps class="mt-16 mb-10" />
+              <home-features-swap class="mt-16 mb-10" />
             </template>
             <template #tabContent4>
-              <home-features-tokens class="mt-16 mb-10" />
+              <home-features-dapps class="mt-16 mb-10" />
             </template>
           </mew-tabs>
         </v-container>
@@ -68,22 +69,24 @@
 </template>
 
 <script>
-import HomeFeaturesSend from './HomeFeaturesSend';
-import HomeFeaturesSwap from './HomeFeaturesSwap';
-import HomeFeaturesDapps from './HomeFeaturesDapps';
-import HomeFeaturesTokens from './HomeFeaturesTokens';
-
+import handlerAnalytics from '@/modules/analytics-opt-in/handlers/handlerAnalytics.mixin';
 export default {
   name: 'HomeFeatures',
   components: {
-    HomeFeaturesSend,
-    HomeFeaturesSwap,
-    HomeFeaturesDapps,
-    HomeFeaturesTokens
+    HomeFeaturesSend: () => import('./HomeFeaturesSend'),
+    HomeFeaturesSwap: () => import('./HomeFeaturesSwap'),
+    HomeFeaturesDapps: () => import('./HomeFeaturesDapps'),
+    HomeFeaturesTokens: () => import('./HomeFeaturesTokens')
   },
+  mixins: [handlerAnalytics],
   data: () => ({
-    mobileTab: null,
+    mewTabIdx: 0,
+    mobileTab: 0,
     mobileItems: [
+      {
+        tab: 'Tokens',
+        img: require('@/assets/images/snippets/mobile/mobile-features-tokens.svg')
+      },
       {
         tab: 'ETH',
         img: require('@/assets/images/snippets/mobile/mobile-features-send.svg')
@@ -95,13 +98,12 @@ export default {
       {
         tab: 'DApps',
         img: require('@/assets/images/snippets/mobile/mobile-features-dapps.svg')
-      },
-      {
-        tab: 'Tokens',
-        img: require('@/assets/images/snippets/mobile/mobile-features-tokens.svg')
       }
     ],
     mewTabs: [
+      {
+        name: 'Tokens'
+      },
       {
         name: 'ETH'
       },
@@ -110,12 +112,22 @@ export default {
       },
       {
         name: 'DApps'
-      },
-      {
-        name: 'Tokens'
       }
     ]
-  })
+  }),
+  watch: {
+    mobileTab(newVal) {
+      this.trackLandingPageAmplitude(this.mobileItems[newVal].tab);
+    }
+  },
+  methods: {
+    trackClick(newVal) {
+      if (this.mewTabIdx !== newVal) {
+        this.mewTabIdx = newVal;
+        this.trackLandingPageAmplitude(this.mewTabs[newVal].name);
+      }
+    }
+  }
 };
 </script>
 
@@ -123,7 +135,7 @@ export default {
 .mew-component--features {
   .desktop-content {
     .features-tabs-container {
-      background-image: url(../../assets/images/backgrounds/bg-waves-color.png);
+      background-image: url(../../assets/images/backgrounds/bg-waves-color.jpg);
       background-size: contain;
       background-position: bottom center;
     }

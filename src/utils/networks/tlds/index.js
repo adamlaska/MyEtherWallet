@@ -1,5 +1,5 @@
 import ETH from './ETH.js';
-import GOERLI from './GOERLI';
-import RIN from './RIN.js';
-import ROP from './ROP.js';
-export { ETH, GOERLI, RIN, ROP };
+import HOLESKY from './HOLESKY';
+import ROOTSTOCK from './ROOTSTOCK';
+import ROOTSTOCKTESTNET from './ROOTSTOCKTESTNET';
+export { ETH, HOLESKY, ROOTSTOCK, ROOTSTOCKTESTNET };

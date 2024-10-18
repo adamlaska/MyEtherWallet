@@ -2,7 +2,7 @@ import { getHashFromFile, uploadFileToIpfs } from './helpers/helperIpfs.js';
 import BigNumber from 'bignumber.js';
 import ENSManagerInterface from './handlerENSManagerInterface.js';
 import * as nameHashPckg from 'eth-ens-namehash';
-import { DNSRegistrar } from '@ensdomains/ens-contracts/deployments/mainnet/DNSRegistrar.json';
+import DNSRegistrar from '@ensdomains/ens-contracts/deployments/mainnet/DNSRegistrar.json';
 import contentHash from 'content-hash';
 import EventEmitter from 'events';
 import vuexStore from '@/core/store';
@@ -10,7 +10,7 @@ import { mapGetters, mapState } from 'vuex';
 import { toBN, toHex, fromWei, sha3 } from 'web3-utils';
 import { estimateGasList } from '@/core/helpers/gasPriceHelper.js';
 import { Toast, ERROR } from '@/modules/toast/handler/handlerToast';
-
+import ReverseRegistrar from '@ensdomains/ens-contracts/deployments/mainnet/ReverseRegistrar.json';
 const bip39 = require('bip39');
 
 export default class PermanentNameModule extends ENSManagerInterface {
@@ -24,6 +24,7 @@ export default class PermanentNameModule extends ENSManagerInterface {
     this.expiration = null;
     this.expired = false;
     this.redeemable = false;
+    this.web3 = web3;
     // Contracts
     this.dnsRegistrarContract = null;
     this.dnsClaim = null;
@@ -40,7 +41,19 @@ export default class PermanentNameModule extends ENSManagerInterface {
   register(duration, balance) {
     return this._registerWithDuration(duration, balance);
   }
-
+  async getNameReverseData(domain) {
+    try {
+      const contract = new this.web3.eth.Contract(
+        ReverseRegistrar.abi,
+        ReverseRegistrar.address
+      );
+      return await contract.methods
+        .setName(domain)
+        .estimateGas({ from: this.address });
+    } catch (e) {
+      Toast(e, {}, ERROR);
+    }
+  }
   async setNameReverseRecord(domain) {
     try {
       return this.ensInstance.setReverseRecord(domain);
@@ -98,7 +111,7 @@ export default class PermanentNameModule extends ENSManagerInterface {
   }
 
   getActualDuration(duration) {
-    const SECONDS_YEAR = 60 * 60 * 24 * 365.25;
+    const SECONDS_YEAR = 60 * 60 * 24 * 365.2425;
     return Math.ceil(SECONDS_YEAR * duration);
   }
 
@@ -110,20 +123,20 @@ export default class PermanentNameModule extends ENSManagerInterface {
       const rentPrice = await this.registrarControllerContract.methods
         .rentPrice(this.parsedHostName, this.getActualDuration(duration))
         .call();
-      return rentPrice;
+      return new BigNumber(rentPrice[0]).plus(rentPrice[1]).toString();
     }
   }
   async totalRenewCost(duration) {
     try {
       const gasPrice = this.gasPriceByType()(this.gasPriceType());
       const rentPrice = await this.getRentPrice(duration);
-      const withFivePercent = BigNumber(rentPrice)
-        .times(1.05)
+      const withTenPercent = BigNumber(rentPrice)
+        .times(1.1)
         .integerValue()
         .toFixed();
       const txObj = {
         from: this.address,
-        value: withFivePercent
+        value: withTenPercent
       };
       const extraFee = await this.registrarControllerContract.methods
         .renew(this.parsedHostName, this.getActualDuration(duration))
@@ -143,13 +156,13 @@ export default class PermanentNameModule extends ENSManagerInterface {
     if (!hasBalance) {
       throw new Error('Not enough balance');
     }
-    const withFivePercent = BigNumber(rentPrice)
-      .times(1.05)
+    const withTenPercent = BigNumber(rentPrice)
+      .times(1.1)
       .integerValue()
       .toFixed();
     return this.registrarControllerContract.methods
       .renew(this.parsedHostName, this.getActualDuration(duration))
-      .send({ from: this.address, value: withFivePercent });
+      .send({ from: this.address, value: withTenPercent });
   }
 
   uploadFile(file) {
@@ -191,18 +204,11 @@ export default class PermanentNameModule extends ENSManagerInterface {
     return this.secretPhrase;
   }
 
-  createCommitment() {
+  createCommitment(duration) {
     const gasPrice = this.gasPriceByType()(this.gasPriceType());
     const txObj = { from: this.address, gasPrice: gasPrice };
     const promiEvent = new EventEmitter();
-    this.registrarControllerContract.methods
-      .makeCommitmentWithConfig(
-        this.parsedHostName,
-        this.address,
-        sha3(this.secretPhrase),
-        this.publicResolverAddress,
-        this.address
-      )
+    this._createContractMethod(duration, true)
       .call()
       .then(commitment => {
         return this.registrarControllerContract.methods
@@ -219,19 +225,14 @@ export default class PermanentNameModule extends ENSManagerInterface {
     return promiEvent;
   }
 
-  async getCommitmentFees() {
+  async getCommitmentFees(duration) {
     try {
       const gasPrice = this.gasPriceByType()(this.gasPriceType());
       const commitTxObj = { from: this.address };
-      const createCommitment = await this.registrarControllerContract.methods
-        .makeCommitmentWithConfig(
-          this.parsedHostName,
-          this.address,
-          sha3(this.secretPhrase),
-          this.publicResolverAddress,
-          this.address
-        )
-        .call();
+      const createCommitment = await this._createContractMethod(
+        duration,
+        true
+      ).call();
       const gasLimit = await this.registrarControllerContract.methods
         .commit(createCommitment)
         .estimateGas(commitTxObj);
@@ -321,8 +322,21 @@ export default class PermanentNameModule extends ENSManagerInterface {
     }
   }
 
+  _createContractMethod(duration, commitment = false) {
+    const method = commitment ? 'makeCommitment' : 'register';
+    return this.registrarControllerContract.methods[method](
+      this.parsedHostName,
+      this.address,
+      this.getActualDuration(duration),
+      sha3(this.secretPhrase),
+      this.publicResolverAddress,
+      [],
+      false,
+      0
+    );
+  }
+
   _registerWithDuration(duration, balance) {
-    const utils = this.web3.utils;
     const promiEvent = new EventEmitter();
     this.getRentPrice(duration).then(rentPrice => {
       const hasBalance = new BigNumber(balance).gte(rentPrice);
@@ -330,28 +344,22 @@ export default class PermanentNameModule extends ENSManagerInterface {
         promiEvent.emit('error', new Error('Not enough balance'));
         return;
       }
-      const withFivePercent = BigNumber(rentPrice)
-        .times(1.05)
+      const withTenPercent = BigNumber(rentPrice)
+        .times(1.1)
         .integerValue()
         .toFixed();
       const txObj = {
         from: this.address,
-        value: withFivePercent
+        value: withTenPercent
       };
-      const registerWithConfig =
-        this.registrarControllerContract.methods.registerWithConfig(
-          this.parsedHostName,
-          this.address,
-          this.getActualDuration(duration),
-          utils.sha3(this.secretPhrase),
-          this.publicResolverAddress,
-          this.address
-        );
+      const registerWithConfig = this._createContractMethod(duration);
 
       registerWithConfig
         .estimateGas(txObj)
         .then(res => {
-          txObj['gas'] = res;
+          txObj['gas'] = Math.ceil(BigNumber(res).times(1.02).toNumber());
+        })
+        .then(() => {
           registerWithConfig
             .send(txObj)
             .on('transactionHash', hash =>
@@ -370,30 +378,24 @@ export default class PermanentNameModule extends ENSManagerInterface {
       const gasPrice = this.gasPriceByType()(this.gasPriceType());
       const rentPrice = await this.getRentPrice(duration);
       const hasBalance = new BigNumber(balance).gte(rentPrice);
+
       if (hasBalance) {
-        const rentPriceWithFivePercent = new BigNumber(rentPrice)
-          .times(1.05)
+        const rentPriceWithTenPercent = new BigNumber(rentPrice)
+          .times(1.1)
           .integerValue()
           .toFixed();
         const txObj = {
           from: this.address,
-          value: rentPriceWithFivePercent
+          value: rentPriceWithTenPercent
         };
-        const gasAmt = await this.registrarControllerContract.methods
-          .registerWithConfig(
-            this.parsedHostName,
-            this.address,
-            this.getActualDuration(duration),
-            sha3(this.secretPhrase),
-            this.publicResolverAddress,
-            this.address
-          )
-          .estimateGas(txObj);
+        const gasAmt = await this._createContractMethod(duration).estimateGas(
+          txObj
+        );
         if (!gasAmt) {
           return false;
         }
         return fromWei(
-          toBN(gasAmt).mul(toBN(gasPrice)).add(toBN(rentPriceWithFivePercent))
+          toBN(gasAmt).mul(toBN(gasPrice)).add(toBN(rentPriceWithTenPercent))
         );
       }
     } catch (e) {

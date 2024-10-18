@@ -6,11 +6,7 @@
     =====================================================================================
     -->
     <mew-overlay
-      :footer="{
-        text: 'Need help?',
-        linkTitle: 'Contact support',
-        link: 'mailto:support@myetherwallet.com'
-      }"
+      :footer="footer"
       :show-overlay="open"
       :title="typeTitle"
       :close="close"
@@ -49,20 +45,25 @@
 </template>
 
 <script>
-import CreateWalletSoftwareOverview from './components/CreateWalletSoftwareOverview';
-import CreateWalletKeystore from './components/CreateWalletKeystore';
-import CreateWalletMnemonicPhrase from './components/CreateWalletMnemonicPhrase';
+import { mapState } from 'vuex';
+
 import { Toast, ERROR } from '@/modules/toast/handler/handlerToast';
 import WALLET_TYPES from '@/modules/access-wallet/common/walletTypes';
 import handlerCreateWallet from './handlers/handlerCreateWallet';
+import handlerAnalytics from '@/modules/analytics-opt-in/handlers/handlerAnalytics.mixin';
+import { SOFTWARE_WALLET_TYPES } from '../access-wallet/software/handlers/helpers';
+import { CREATE_WALLET } from '@/modules/analytics-opt-in/handlers/configs/events.js';
 
 export default {
   name: 'ModuleCreateWalletSoftware',
   components: {
-    CreateWalletSoftwareOverview,
-    CreateWalletKeystore,
-    CreateWalletMnemonicPhrase
+    CreateWalletSoftwareOverview: () =>
+      import('./components/CreateWalletSoftwareOverview'),
+    CreateWalletKeystore: () => import('./components/CreateWalletKeystore'),
+    CreateWalletMnemonicPhrase: () =>
+      import('./components/CreateWalletMnemonicPhrase')
   },
+  mixins: [handlerAnalytics],
   props: {
     open: {
       type: Boolean,
@@ -81,9 +82,15 @@ export default {
   },
   data: () => ({
     types: WALLET_TYPES,
-    walletHandler: {}
+    walletHandler: {},
+    footer: {
+      text: 'Need help?',
+      linkTitle: 'Contact support',
+      link: 'mailto:support@myetherwallet.com'
+    }
   }),
   computed: {
+    ...mapState('wallet', ['isOfflineApp']),
     isOverview() {
       return (
         this.walletType !== this.types.MNEMONIC &&
@@ -108,6 +115,13 @@ export default {
     }
   },
   mounted() {
+    if (this.isOfflineApp) {
+      this.footer = {
+        text: 'Need help? Email us at support@myetherwallet.com',
+        linkTitle: '',
+        link: ''
+      };
+    }
     this.walletHandler = new handlerCreateWallet();
   },
   destroyed() {
@@ -145,6 +159,13 @@ export default {
         this.$router.push({
           query: { type: newType }
         });
+        let type = '';
+        if (newType === SOFTWARE_WALLET_TYPES.KEYSTORE) {
+          type = CREATE_WALLET.KEYSTORE_FILE_CLICKED;
+        } else if (newType === SOFTWARE_WALLET_TYPES.MNEMONIC) {
+          type = CREATE_WALLET.MNEMONIC_PHRASE_CLICKED;
+        }
+        this.trackCreateWalletAmplitude(type);
       } catch (e) {
         Toast(e, {}, ERROR);
       }

@@ -2,10 +2,12 @@
   <div>
     <mew-address-select
       ref="addressSelect"
-      :resolved-addr="resolvedAddr"
+      :resolved-addr="addressOnly"
+      :hint="nameOnly"
       :copy-tooltip="$t('common.copy')"
       :save-tooltip="$t('common.save')"
       :enable-save-address="enableSave"
+      :show-save="enableSave"
       :label="addrLabel"
       :items="addressBookWithMyAddress"
       :placeholder="$t('sendTx.enter-addr')"
@@ -18,11 +20,7 @@
     />
     <!-- add and edit the address book -->
     <mew-overlay
-      :footer="{
-        text: 'Need help?',
-        linkTitle: 'Contact support',
-        link: 'mailto:support@myetherwallet.com'
-      }"
+      :footer="footer"
       :title="$t('interface.address-book.add-addr')"
       :show-overlay="addMode"
       :close="toggleOverlay"
@@ -38,13 +36,15 @@
 </template>
 
 <script>
-import { isAddress } from '@/core/helpers/addressUtils';
 import { mapGetters, mapState } from 'vuex';
-import NameResolver from '@/modules/name-resolver/index';
-import AddressBookAddEdit from './components/AddressBookAddEdit';
 import { isObject, throttle } from 'lodash';
-import { toChecksumAddress } from '@/core/helpers/addressUtils';
 import WAValidator from 'multicoin-address-validator';
+// import { getAddressInfo } from '@kleros/address-tags-sdk';
+
+import { isAddress, toChecksumAddress } from '@/core/helpers/addressUtils';
+import Resolver from '@/modules/name-resolver/index';
+import { ERROR, Toast } from '../toast/handler/handlerToast';
+import { ROOTSTOCK } from '@/utils/networks/types';
 
 const USER_INPUT_TYPES = {
   typed: 'TYPED',
@@ -54,7 +54,7 @@ const USER_INPUT_TYPES = {
 
 export default {
   components: {
-    AddressBookAddEdit
+    AddressBookAddEdit: () => import('./components/AddressBookAddEdit')
   },
   props: {
     isValidAddressFunc: {
@@ -89,14 +89,26 @@ export default {
       inputAddr: '',
       nameResolver: null,
       isValidAddress: false,
-      loadedAddressValidation: false
+      loadedAddressValidation: false,
+      nametag: '',
+      footer: {
+        text: 'Need help?',
+        linkTitle: 'Contact support',
+        link: 'mailto:support@myetherwallet.com'
+      }
     };
   },
 
   computed: {
     ...mapState('addressBook', ['addressBookStore']),
     ...mapGetters('global', ['network']),
-    ...mapState('wallet', ['web3', 'address']),
+    ...mapState('wallet', [
+      'web3',
+      'address',
+      'isOfflineApp',
+      'identifier',
+      'instance'
+    ]),
     errorMessages() {
       if (!this.isValidAddress && this.loadedAddressValidation) {
         return this.$t('interface.address-book.validations.invalid-address');
@@ -116,7 +128,14 @@ export default {
               resolverAddr: '0xDECAF9CD2367cdbb726E904cD6397eDFcAe6068D'
             }
           ]
-        : this.address
+        : this.myAddressBook;
+    },
+    myAddressBook() {
+      if (!this.isHomePage && !this.identifier && this.instance)
+        this.instance.errorHandler(
+          new Error('Wallet has no identifier! Please refresh the page')
+        );
+      return this.address
         ? [
             {
               address: toChecksumAddress(this.address),
@@ -124,13 +143,15 @@ export default {
               resolverAddr: ''
             }
           ].concat(this.addressBookStore)
-        : [
+        : // If address is undefined set to MEW Donations
+          [
             {
-              address: toChecksumAddress(this.address),
-              nickname: 'My Address',
-              resolverAddr: ''
+              address: '0xDECAF9CD2367cdbb726E904cD6397eDFcAe6068D',
+              currency: 'ETH',
+              nickname: 'MEW Donations',
+              resolverAddr: '0xDECAF9CD2367cdbb726E904cD6397eDFcAe6068D'
             }
-          ];
+          ].concat(this.addressBookStore);
     },
     enableSave() {
       return this.isHomePage
@@ -139,20 +160,45 @@ export default {
     },
     addrLabel() {
       return this.label === '' ? this.$t('sendTx.to-addr') : this.label;
+    },
+    addressOnly() {
+      return isAddress(this.resolvedAddr) && this.isValidAddress
+        ? this.resolvedAddr
+        : '';
+    },
+    nameOnly() {
+      return !isAddress(this.resolvedAddr) && this.isValidAddress
+        ? this.resolvedAddr || this.nametag
+        : '';
     }
   },
   watch: {
     web3() {
-      if (this.network.type.ens && this.web3.currentProvider) {
-        this.nameResolver = new NameResolver(this.network, this.web3);
+      if (this.network.type.ensEnkryptType) {
+        this.nameResolver = new Resolver(this.network);
       } else {
         this.nameResolver = null;
+      }
+    },
+    inputAddr(newVal) {
+      this.nametag = '';
+      if (isAddress(newVal.toLowerCase())) {
+        this.resolveAddress();
+      } else {
+        this.resolveName();
       }
     }
   },
   mounted() {
-    if (this.network.type.ens && this.web3.currentProvider)
-      this.nameResolver = new NameResolver(this.network, this.web3);
+    if (this.isOfflineApp) {
+      this.footer = {
+        text: 'Need help? Email us at support@myetherwallet.com',
+        linkTitle: '',
+        link: ''
+      };
+    }
+    if (this.network.type.ensEnkryptType)
+      this.nameResolver = new Resolver(this.network);
     if (this.isHomePage) {
       this.setDonationAddress();
     }
@@ -173,7 +219,7 @@ export default {
       if (typeof value === 'string') {
         if (
           this.currency.toLowerCase() ===
-          this.network.type.currencyName.toLowerCase()
+          this.network.type.currencyName?.toLowerCase()
         ) {
           /**
            * Checks if user typed or selected an address from dropdown
@@ -189,21 +235,18 @@ export default {
           /**
            * Checks if the address is valid
            */
-          const isAddValid = this.isValidAddressFunc(this.inputAddr);
-          if (isAddValid instanceof Promise) {
-            const validation = await isAddValid;
-            this.isValidAddress = validation;
-          } else {
-            this.isValidAddress = isAddValid;
+          try {
+            const isAddValid = this.isValidAddressFunc(this.inputAddr);
+            if (isAddValid instanceof Promise) {
+              const validation = await isAddValid;
+              this.isValidAddress = validation;
+            } else {
+              this.isValidAddress = isAddValid;
+            }
+          } catch (e) {
+            this.isValidAddress = false;
           }
           this.loadedAddressValidation = !this.isValidAddress ? false : true;
-          if (this.isValidAddress) {
-            const reverseName = await this.nameResolver.resolveAddress(
-              this.inputAddr
-            );
-            this.resolvedAddr = reverseName?.name ? reverseName.name : '';
-          }
-
           /**
            * @emits setAddress
            */
@@ -211,8 +254,14 @@ export default {
             type: inputType,
             value: isObject(typeVal) ? typeVal.nickname : typeVal
           });
+          /**
+           * Resolve address with ENS/Unstoppable/Kleros
+           */
+          if (this.isValidAddress && !this.isOfflineApp)
+            await this.resolveAddress();
+
           if (!this.isValidAddress) {
-            this.resolveName();
+            await this.resolveName();
           }
         } else {
           const currencyExists = WAValidator.findCurrency(
@@ -238,7 +287,18 @@ export default {
               value: value
             });
           } else {
-            this.isValidAddress = false;
+            try {
+              this.inputAddr = value;
+              const isAddValid = this.isValidAddressFunc(this.inputAddr);
+              if (isAddValid instanceof Promise) {
+                const validation = await isAddValid;
+                this.isValidAddress = validation;
+              } else {
+                this.isValidAddress = isAddValid;
+              }
+            } catch (e) {
+              this.isValidAddress = false;
+            }
             this.loadedAddressValidation = true;
             this.$emit('setAddress', value, this.isValidAddress, {
               type: inputType,
@@ -264,8 +324,8 @@ export default {
       });
 
       // Calls setups from mounted
-      if (this.network.type.ens)
-        this.nameResolver = new NameResolver(this.network, this.web3);
+      if (!this.isOfflineApp && this.network.type.ensEnkryptType)
+        this.nameResolver = new Resolver(this.network);
       if (this.isHomePage) {
         this.setDonationAddress();
       }
@@ -280,6 +340,27 @@ export default {
     toggleOverlay() {
       this.addMode = !this.addMode;
     },
+    /**
+     * Resolves address and @returns name
+     */
+    resolveAddress: throttle(async function () {
+      if (this.nameResolver) {
+        try {
+          // Ethers.js rejects Rootstock checksummed address so use lowercase address.
+          const inputAddress =
+            this.network.type.chainID === ROOTSTOCK.chainID
+              ? this.inputAddr.toLowerCase()
+              : this.inputAddr;
+          const reverseName = await this.nameResolver.resolveAddress(
+            inputAddress
+          );
+
+          this.resolvedAddr = reverseName?.name ? reverseName.name : '';
+        } catch (e) {
+          Toast(e, {}, ERROR);
+        }
+      }
+    }, 300),
     /**
      * Resolves name and @returns address
      */

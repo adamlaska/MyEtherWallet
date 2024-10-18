@@ -8,8 +8,10 @@
     <template #moduleBody>
       <div>
         <mew-select
+          v-model="currentContract"
           :items="mergedContracts"
           label="Contract Name"
+          class="ContractSelect"
           normal-dropdown
           @input="selectedContract"
         />
@@ -17,7 +19,9 @@
           v-model="contractAddress"
           label="Contract Address"
           placeholder=" "
-          class="mr-3 flex-grow-1"
+          class="mr-3 flex-grow-1 full-width"
+          :persistent-hint="nametag.length > 0"
+          :hint="nametag"
         />
 
         <v-textarea
@@ -28,22 +32,20 @@
           label="ABI/JSON Interface"
         ></v-textarea>
 
-        <div class="text-center mt-3">
-          <mew-button
-            title="Interact"
-            :disabled="!canInteract"
-            :has-full-width="false"
-            btn-size="xlarge"
-            @click.native="showInteract"
-          />
-        </div>
-        <div class="text-center mt-4">
+        <div class="text-right">
           <mew-button
             title="Clear all"
             :has-full-width="false"
-            btn-size="small"
-            btn-style="transparent"
+            btn-style="light"
+            class="mr-4"
             @click.native="resetDefaults"
+          />
+          <mew-button
+            title="Interact"
+            class="InteractButton"
+            :disabled="!canInteract"
+            :has-full-width="false"
+            @click.native="showInteract"
           />
         </div>
       </div>
@@ -67,7 +69,7 @@
         <mew-select
           label="Function"
           :items="methods"
-          class="mb-1"
+          class="mt-4 mt-lg-0 mb-1 FunctionSelect"
           normal-dropdown
           @input="methodSelect"
         />
@@ -123,6 +125,7 @@
             :title="isViewFunction ? 'Call' : 'Write'"
             :has-full-width="false"
             btn-size="xlarge"
+            class="CallFunctionButton"
             :disabled="canProceed"
             @click.native="readWrite"
           />
@@ -130,14 +133,14 @@
 
         <v-divider v-if="hasOutputs" class="mt-9 mb-8" />
 
-        <div v-if="hasOutputs">
+        <div v-if="hasOutputs" style="display: contents">
           <div class="mew-heading-2">Results</div>
           <div
             v-for="(output, idx) in selectedMethod.outputs"
             :key="output.name + idx"
             class="d-flex align-center justify-space-between my-4"
           >
-            <div class="text-capitalize">
+            <div class="text-capitalize mr-2">
               {{ output.name !== '' ? output.name : selectedMethod.name }}
             </div>
             <div class="font-weight-medium">{{ output.value }}</div>
@@ -152,6 +155,9 @@
 import Vue from 'vue';
 import { mapState, mapGetters } from 'vuex';
 import { toBN, toWei } from 'web3-utils';
+import { isString, throttle } from 'lodash';
+import { getAddressInfo } from '@kleros/address-tags-sdk';
+
 import { isAddress } from '@/core/helpers/addressUtils';
 import { stringToArray } from '@/core/helpers/common';
 import {
@@ -161,9 +167,12 @@ import {
   isContractArgValid
 } from './handlers/common';
 import { ERROR, Toast } from '../toast/handler/handlerToast';
-import { isString } from 'lodash';
+import handlerAnalyticsMixin from '../analytics-opt-in/handlers/handlerAnalytics.mixin';
+import { CONTRACT } from '../analytics-opt-in/handlers/configs/events';
+
 export default {
   name: 'ModuleContractInteract',
+  mixins: [handlerAnalyticsMixin],
   data() {
     return {
       currentContract: null,
@@ -177,7 +186,9 @@ export default {
         outputs: []
       },
       outputValues: [],
-      ethPayable: '0'
+      ethPayable: '0',
+      nametag: '',
+      networkContracts: []
     };
   },
   computed: {
@@ -218,7 +229,7 @@ export default {
         { text: 'Select a Contract', selectLabel: true, divider: true }
       ].concat(
         checkContract(this.localContracts),
-        checkContract(this.network.type.contracts)
+        checkContract(this.networkContracts)
       );
     },
     methods() {
@@ -227,7 +238,7 @@ export default {
           if (
             item.type !== 'constructor' &&
             item.type !== 'event' &&
-            item.type !== 'Fallback'
+            item.type !== 'fallback'
           ) {
             return item;
           }
@@ -248,7 +259,31 @@ export default {
       return outputsWithValues.length > 0;
     }
   },
+  watch: {
+    contractAddress(newVal) {
+      this.nametag = '';
+      if (!newVal) {
+        this.contractAddress = '';
+      }
+      if (newVal && isAddress(newVal.toLowerCase())) {
+        this.resolveAddress();
+      }
+    },
+    web3: {
+      handler: function () {
+        this.generateNetworkContracts();
+      }
+    }
+  },
+  mounted() {
+    this.generateNetworkContracts();
+  },
   methods: {
+    generateNetworkContracts() {
+      this.network.type.contracts.then(contracts => {
+        this.networkContracts = contracts;
+      });
+    },
     resetDefaults() {
       this.currentContract = null;
       this.abi = [];
@@ -262,17 +297,25 @@ export default {
     readWrite() {
       const params = [];
       for (const _input of this.selectedMethod.inputs) {
-        if (_input.type.includes('[]'))
-          params.push(stringToArray(_input.value));
-        else params.push(_input.value);
+        if (_input.type.includes('[]')) {
+          if (_input.value === '[]') {
+            params.push([]);
+          } else {
+            params.push(stringToArray(_input.value));
+          }
+        } else {
+          params.push(_input.value);
+        }
       }
       const caller = this.currentContract.methods[
         this.selectedMethod.name
       ].apply(this, params);
       if (this.isViewFunction) {
+        this.trackContract(CONTRACT.INTERACT_W_CONTRACT_READ);
         caller
           .call()
           .then(result => {
+            this.trackContract(CONTRACT.INTERACT_W_CONTRACT_READ_SUCCESS);
             if (this.selectedMethod.outputs.length === 1) {
               this.selectedMethod.outputs[0].value = result;
               Vue.set(
@@ -288,9 +331,11 @@ export default {
             }
           })
           .catch(({ message }) => {
+            this.trackContract(CONTRACT.INTERACT_W_CONTRACT_READ_FAIL);
             Toast(message, {}, ERROR);
           });
       } else if (this.isPayableFunction) {
+        this.trackContract(CONTRACT.INTERACT_W_CONTRACT_WRITE);
         const rawTx = {
           to: this.contractAddress,
           from: this.address,
@@ -301,16 +346,25 @@ export default {
         this.web3.eth
           .estimateGas(rawTx)
           .then(gasLimit => {
+            this.trackContract(CONTRACT.INTERACT_W_CONTRACT_WRITE_SUCCESS);
             rawTx.gas = gasLimit;
             caller.send(rawTx);
           })
           .catch(({ message }) => {
+            this.trackContract(CONTRACT.INTERACT_W_CONTRACT_WRITE_FAIL);
             Toast(message, {}, ERROR);
           });
       } else {
+        this.trackContract(CONTRACT.INTERACT_W_CONTRACT_WRITE);
         caller
           .send({ from: this.address })
-          .catch(({ message }) => Toast(message, {}, ERROR));
+          .then(() => {
+            this.trackContract(CONTRACT.INTERACT_W_CONTRACT_WRITE_SUCCESS);
+          })
+          .catch(({ message }) => {
+            this.trackContract(CONTRACT.INTERACT_W_CONTRACT_WRITE_FAIL);
+            Toast(message, {}, ERROR);
+          });
       }
     },
     payableInput(amount) {
@@ -367,7 +421,22 @@ export default {
     },
     getType(type) {
       return getInputType(type);
-    }
+    },
+    /**
+     * Resolves address and @returns name
+     */
+    resolveAddress: throttle(async function () {
+      try {
+        await getAddressInfo(
+          this.contractAddress,
+          'https://ipfs.kleros.io'
+        ).then(data => {
+          this.nametag = data?.publicNameTag || '';
+        });
+      } catch (e) {
+        this.nametag = '';
+      }
+    }, 300)
   }
 };
 </script>

@@ -1,14 +1,14 @@
 <template>
-  <div class="mew6-component--module-balance">
+  <div class="module-balance">
     <!--
     =====================================================================================
       display if the user has an eth balance > 0
     =====================================================================================
     -->
-    <loader v-if="loading" />
+    <loader v-if="loadingWalletInfo" />
 
     <mew-module
-      v-if="hasBalance && !loading"
+      v-if="hasBalance && !loadingWalletInfo"
       :subtitle="subtitle"
       :title="title"
       :has-body-padding="false"
@@ -17,20 +17,20 @@
       :has-elevation="true"
       :has-full-height="true"
       icon-align="left"
+      class="bgWalletBlock"
     >
-      <template v-if="network.type.name === 'ETH'" #rightHeaderContainer>
+      <template v-if="false" #rightHeaderContainer>
         <div class="d-flex align-center ml-8 mt-3 mt-sm-0">
           <mew-toggle
             :button-group="chartButtons"
             :on-toggle-btn-idx="activeButton"
             @onBtnClick="onToggle"
           />
-          <!-- not sure what this button is for, commented out for now -->
         </div>
       </template>
       <template #moduleBody>
         <balance-chart
-          v-if="network.type.name === 'ETH'"
+          v-if="false"
           :data="chartData"
           class="full-width mt-5 pa-md-3"
         />
@@ -91,7 +91,7 @@
     =====================================================================================
     -->
     <balance-empty-block
-      v-if="!hasBalance && !loading"
+      v-if="!hasBalance && !loadingWalletInfo"
       :network-type="network.type.currencyName"
       :is-eth="isEthNetwork"
     />
@@ -99,36 +99,35 @@
 </template>
 
 <script>
-import Loader from './ModuleBalanceLoader';
-import BalanceChart from '@/modules/balance/components/BalanceChart';
-import BalanceEmptyBlock from './components/BalanceEmptyBlock';
-import handlerBalanceHistory from './handlers/handlerBalanceHistory.mixin';
 import { mapGetters, mapState } from 'vuex';
+import BigNumber from 'bignumber.js';
+
 import {
   formatPercentageValue,
   formatFloatingPointValue
 } from '@/core/helpers/numberFormatHelper';
-import BigNumber from 'bignumber.js';
 import { ROUTES_WALLET } from '@/core/configs/configRoutes';
+
+import handlerAnalytics from '@/modules/analytics-opt-in/handlers/handlerAnalytics.mixin';
+import { DASHBOARD } from '@/modules/analytics-opt-in/handlers/configs/events.js';
 export default {
   components: {
-    Loader,
-    BalanceChart,
-    BalanceEmptyBlock
+    Loader: () => import('./ModuleBalanceLoader'),
+    BalanceChart: () => import('@/modules/balance/components/BalanceChart'),
+    BalanceEmptyBlock: () => import('./components/BalanceEmptyBlock')
   },
-  mixins: [handlerBalanceHistory],
+  mixins: [handlerAnalytics],
   data() {
     return {
       chartButtons: ['1D', '1W', '1M', '1Y'],
       chartData: [],
       timeString: '',
       scale: '',
-      activeButton: 0,
-      loading: true
+      activeButton: 0
     };
   },
   computed: {
-    ...mapState('wallet', ['address']),
+    ...mapState('wallet', ['address', 'loadingWalletInfo']),
     ...mapGetters('global', ['network', 'hasSwap', 'getFiatValue']),
     ...mapGetters('wallet', ['balanceInETH', 'balanceInWei']),
     ...mapGetters('external', [
@@ -230,14 +229,12 @@ export default {
           if (count >= 3) {
             this.onToggle(this.chartButtons[count]);
             this.activeButton = count;
-            this.loading = false;
             // a single point basically looks the same as an empty chart
           } else if (this.chartData.length <= 1) {
             count++;
             checker();
           } else {
             this.activeButton = count;
-            this.loading = false;
           }
         }, 1000);
       };
@@ -285,6 +282,7 @@ export default {
       this.$router.push({ name: ROUTES_WALLET.SEND_TX.NAME });
     },
     navigateToSwap() {
+      this.trackDashboardAmplitude(DASHBOARD.SWAP_BALANCE);
       this.$router.push({ name: ROUTES_WALLET.SWAP.NAME });
     }
   }
